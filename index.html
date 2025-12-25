@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HONEY NOW</title>
+
+    <style>
+        /* 全体レイアウト */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        /* タイトル画面オーバーレイ */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+        .title-text {
+            font-size: 40px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 10px #00ccff, 0 0 20px #ff3366;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .mode-btn {
+            background: linear-gradient(90deg, #00ccff, #0088cc);
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 20px 40px;
+            margin: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            width: 80%;
+            max-width: 300px;
+            box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+            transition: transform 0.1s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+        .mode-btn:active { transform: scale(0.95); }
+        .mode-btn.cpu {
+            background: linear-gradient(90deg, #ff3366, #cc0033);
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+        }
+
+        /* ヘッダー */
+        header {
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* カード情報テキストのスタイル */
+        #card-info {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ffd700; /* 金色で強調 */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            letter-spacing: 2px;
+        }
+
+        #turn-indicator {
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+        }
+        #phase-badge {
+            background: #444;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ゲームエリア */
+        #game-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        canvas {
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+
+        /* フッター */
+        footer {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        #card-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .card {
+            background: linear-gradient(145deg, #2a2a2a, #333);
+            border: 2px solid #555;
+            color: #aaa;
+            padding: 15px 0;
+            width: 30%;
+            text-align: center;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .card.selected {
+            border-color: #ffd700;
+            background: linear-gradient(145deg, #ffd700, #ffaa00);
+            color: #000;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        #main-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(90deg, #ff8c00, #ff0080);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
+            transition: transform 0.1s;
+        }
+        #main-btn:disabled {
+            background: #444;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        #main-btn:active { transform: scale(0.98); }
+
+        #toast {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="title-screen">
+    <div class="title-text" style="color: #ffd700; text-shadow: 0 0 20px #ffaa00;">
+        HONEY<br>
+        <span style="font-size:40px; color:#fff; letter-spacing: 8px;">NOW</span>
+    </div>
+    <button class="mode-btn" onclick="startGame('PvP')">Player vs Player</button>
+    <button class="mode-btn cpu" onclick="startGame('PvE')">Player vs CPU</button>
+</div>
+
+<header>
+    <div id="turn-indicator">BLUE TURN</div>
+    <div id="card-info"></div>
+    <div id="phase-badge">SETUP</div>
+</header>
+
+<div id="game-area">
+    <canvas id="board"></canvas>
+    <div id="toast"></div>
+</div>
+
+<footer>
+    <div id="card-panel">
+        <div class="card" onclick="uiSelectCard(2)">2連</div>
+        <div class="card" onclick="uiSelectCard(3)">3連</div>
+        <div class="card" onclick="uiSelectCard(4)">4連</div>
+    </div>
+    <button id="main-btn" onclick="uiConfirm()" disabled>決定</button>
+</footer>
+
+<script>
+/** * 定数・設定 */
+const BOARD_RADIUS = 3;
+const COLORS = {
+    p1: '#00ccff', p1Bg: '#001a33',
+    p2: '#ff3366', p2Bg: '#2a0a12',
+    hex: '#222', hexEdge: '#333',
+    damageZone: 'rgba(255, 50, 50, 0.2)', damageStroke: '#ff3333',
+    previewLine: 'rgba(255, 255, 0, 0.8)', guideMarker: 'rgba(255, 255, 255, 0.3)'
+};
+
+const P1 = { id: 1, name: 'BLUE', color: COLORS.p1, bg: COLORS.p1Bg };
+const P2 = { id: 2, name: 'RED', color: COLORS.p2, bg: COLORS.p2Bg };
+const DIRECTIONS = [{dq:1,dr:0}, {dq:1,dr:-1}, {dq:0,dr:-1}, {dq:-1,dr:0}, {dq:-1,dr:1}, {dq:0,dr:1}];
+
+/** * ゲーム状態 */
+let state = {
+    gameMode: null, // 'PvP' or 'PvE'
+    turn: 1,
+    turnPlayer: P1,
+    phase: 'TITLE', 
+    hexes: [],
+    units: [],
+    selectedCard: null,
+    tempRotationStart: null,
+    validDirections: [], 
+    hiddenRotation: null,
+    defenderMoves: [],
+    selectedUnit: null,
+    winner: null,
+    frameCount: 0,
+    isCpuThinking: false
+};
+
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let HEX_SIZE = 30;
+
+/* --- 初期化・モード選択 --- */
+function startGame(mode) {
+    state.gameMode = mode;
+    document.getElementById('title-screen').style.display = 'none';
+    initBoardUnits();
+    state.turn = 1;
+    state.turnPlayer = P1;
+    state.phase = 'SELECT_CARD';
+    state.winner = null;
+    state.isCpuThinking = false;
+    updateTurnVisuals();
+    showToast("GAME START!");
+    resizeCanvas();
+    gameLoop();
+}
+
+function initBoardUnits() {
+    state.hexes = [];
+    for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q++) {
+        let r1 = Math.max(-BOARD_RADIUS, -q - BOARD_RADIUS);
+        let r2 = Math.min(BOARD_RADIUS, -q + BOARD_RADIUS);
+        for (let r = r1; r <= r2; r++) {
+            const dist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
+            const isEdge = dist === BOARD_RADIUS;
+            
+            // ▼▼▼ 修正: 角（コーナー）の判定を追加 ▼▼▼
+            // (q,r)座標の特徴から6つの角を特定します
+            const isCorner = (Math.abs(q) === BOARD_RADIUS && r === 0) ||
+                             (Math.abs(r) === BOARD_RADIUS && q === 0) ||
+                             (Math.abs(q) === BOARD_RADIUS && r === -q);
+
+            state.hexes.push({ q, r, isEdge, isCorner });
+        }
+    }
+    const initialPositions = [
+        { q: 2, r: 0, owner: 1 }, { q: 0, r: 2, owner: 2 },
+        { q: -2, r: 2, owner: 1 }, { q: -2, r: 0, owner: 2 },
+        { q: 0, r: -2, owner: 1 }, { q: 2, r: -2, owner: 2 }
+    ];
+    state.units = [];
+    initialPositions.forEach((pos, i) => {
+        state.units.push({
+            id: `u${i}`, owner: pos.owner, q: pos.q, r: pos.r, hp: 1000,
+            animQ: pos.q, animR: pos.r
+        });
+    });
+}
+
+/* --- メインループ --- */
+function gameLoop() {
+    state.frameCount++;
+    state.units.forEach(u => {
+        u.animQ += (u.q - u.animQ) * 0.2;
+        u.animR += (u.r - u.animR) * 0.2;
+    });
+    draw();
+    if (!state.winner) requestAnimationFrame(gameLoop);
+}
+
+/* --- 描画ロジック --- */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // グリッド
+    state.hexes.forEach(h => {
+        const {x, y} = hexToPixel(h.q, h.r);
+        let color = COLORS.hex;
+        let stroke = COLORS.hexEdge;
+        let lineWidth = 1;
+        if (h.isEdge) { stroke = COLORS.damageStroke; lineWidth = 2; }
+        if (state.hiddenRotation && state.phase === 'ANIMATION' && state.hiddenRotation.indices.includes(getHexIndex(h.q, h.r))) {
+             color = '#444';
+        }
+        drawHex(x, y, HEX_SIZE * 0.95, color, stroke, lineWidth);
+        
+        // 移動ガイド
+        if (state.phase === 'DEFENDER_MOVE' && state.selectedUnit && !state.isCpuThinking) {
+            if (!getUnitAt(h.q, h.r)) {
+                ctx.beginPath(); ctx.arc(x, y, HEX_SIZE * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = COLORS.guideMarker; ctx.fill();
+            }
+        }
+    });
+
+    // 回転プレビュー
+    if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
+        const startPos = hexToPixel(state.tempRotationStart.q, state.tempRotationStart.r);
+        drawHex(startPos.x, startPos.y, HEX_SIZE * 0.8, '#ffd700', null, 0);
+        state.validDirections.forEach(dirObj => {
+            const indices = dirObj.indices;
+            ctx.beginPath();
+            const pStart = hexToPixel(state.hexes[indices[0]].q, state.hexes[indices[0]].r);
+            ctx.moveTo(pStart.x, pStart.y);
+            indices.forEach(idx => {
+                const p = hexToPixel(state.hexes[idx].q, state.hexes[idx].r);
+                ctx.lineTo(p.x, p.y);
+            });
+            ctx.strokeStyle = COLORS.previewLine; ctx.lineWidth = 4;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+            
+            const pTrig = hexToPixel(state.hexes[indices[1]].q, state.hexes[indices[1]].r);
+            const pulse = 1 + 0.3 * Math.sin(state.frameCount * 0.2);
+            ctx.beginPath(); ctx.arc(pTrig.x, pTrig.y, HEX_SIZE * 0.4 * pulse, 0, Math.PI*2);
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            
+            const pEnd = hexToPixel(state.hexes[indices[indices.length-1]].q, state.hexes[indices[indices.length-1]].r);
+            drawArrowHead(pEnd.x, pEnd.y);
+        });
+    }
+
+    // トライアングル
+    [1, 2].forEach(ownerId => {
+        const myUnits = state.units.filter(u => u.owner === ownerId);
+        if (myUnits.length === 3) {
+            const pts = myUnits.map(u => hexToPixel(u.animQ, u.animR));
+            const isEq = isEquilateral(pts[0], pts[1], pts[2]);
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); ctx.lineTo(pts[2].x, pts[2].y); ctx.closePath();
+            const color = ownerId === 1 ? COLORS.p1 : COLORS.p2;
+            if (isEq) {
+                ctx.strokeStyle = color; ctx.lineWidth = 4;
+                ctx.shadowColor = color; ctx.shadowBlur = 20; ctx.stroke();
+                ctx.fillStyle = color + '22'; ctx.fill();
+            } else {
+                ctx.strokeStyle = '#444'; ctx.lineWidth = 2; ctx.shadowBlur = 0; ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+    });
+
+    // ユニット
+    state.units.forEach(u => {
+        const {x, y} = hexToPixel(u.animQ, u.animR);
+        const color = u.owner === 1 ? COLORS.p1 : COLORS.p2;
+        
+        // 移動線
+        const move = state.defenderMoves.find(m => m.unitId === u.id);
+        if (move) {
+            const destHex = state.hexes[move.toIndex];
+            const destPos = hexToPixel(destHex.q, destHex.r);
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(destPos.x, destPos.y);
+            ctx.strokeStyle = '#fff'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        let size = HEX_SIZE * 0.7; let stroke = '#fff'; let lw = 2;
+        if (state.selectedUnit && state.selectedUnit.id === u.id) {
+            size *= 1.1; stroke = '#ffd700'; lw = 4;
+            ctx.beginPath(); ctx.arc(x, y, HEX_SIZE, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
+        }
+        drawHex(x, y, size, color, stroke, lw);
+        // HP
+        const hpPct = u.hp / 1000;
+        ctx.fillStyle = '#000'; ctx.fillRect(x - 15, y - 5, 30, 4);
+        ctx.fillStyle = hpPct > 0.5 ? '#0f0' : '#f00'; ctx.fillRect(x - 15, y - 5, 30 * Math.max(0, hpPct), 4);
+    });
+}
+
+function drawHex(x, y, size, fill, stroke, lw) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const angle = 2 * Math.PI / 6 * i + Math.PI/6;
+        const px = x + size * Math.cos(angle);
+        const py = y + size * Math.sin(angle);
+        if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+}
+function drawArrowHead(x, y) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill(); }
+
+/* --- UI制御 & CPUロジック --- */
+function updateTurnVisuals() {
+    const p = state.turnPlayer;
+    document.body.style.backgroundColor = p.bg;
+    const indicator = document.getElementById('turn-indicator');
+    indicator.innerText = `${p.name}'S TURN`;
+    indicator.style.color = p.color;
+
+    const badge = document.getElementById('phase-badge');
+    const cardPanel = document.getElementById('card-panel');
+    const mainBtn = document.getElementById('main-btn');
+
+    // CPUターン中は操作無効
+    if (state.isCpuThinking) {
+        cardPanel.style.pointerEvents = 'none';
+        mainBtn.disabled = true;
+        badge.innerText = "CPU THINKING...";
+        return;
+    }
+    cardPanel.style.pointerEvents = 'auto';
+
+    if (state.phase === 'SELECT_CARD') {
+        badge.innerText = "1. SELECT CARD";
+        cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+    } else if (state.phase === 'SELECT_ROTATION') {
+        badge.innerText = "2. SET ROTATION";
+        cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+    } else if (state.phase === 'DEFENDER_MOVE') {
+        badge.innerText = "3. EVASION MOVE";
+        cardPanel.style.display = 'none'; mainBtn.style.display = 'block';
+        const defender = state.turnPlayer.id === 1 ? P2 : P1;
+        mainBtn.innerText = `移動完了 (${state.defenderMoves.length}/2)`;
+        mainBtn.disabled = false;
+        indicator.innerText = `${defender.name}'S MOVE`;
+        indicator.style.color = defender.color;
+        document.body.style.backgroundColor = defender.bg;
+    } else {
+        badge.innerText = "EXECUTING...";
+    }
+}
+
+// CPUの行動処理 (強化版: 同じユニットの連続移動禁止)
+async function triggerCpuAction() {
+    if (state.gameMode !== 'PvE' || state.winner) return;
+    
+    const isCpuAttacker = (state.turnPlayer.id === 2);
+    const isCpuDefender = (state.turnPlayer.id === 1 && state.phase === 'DEFENDER_MOVE');
+
+    if (!isCpuAttacker && !isCpuDefender) return;
+
+    state.isCpuThinking = true;
+    updateTurnVisuals();
+
+    await wait(1000);
+
+    // --- 攻撃フェーズ ---
+    if (state.phase === 'SELECT_CARD') {
+        const bestAction = aiFindBestCardAction();
+        const choice = bestAction.cardLen;
+        uiSelectCard(choice, true);
+        showToast(`CPU SELECT: ${choice}連`);
+        await wait(1500);
+        
+        if (bestAction.indices) {
+            state.hiddenRotation = { indices: bestAction.indices };
+            state.phase = 'DEFENDER_MOVE';
+            state.tempRotationStart = null;
+            state.validDirections = [];
+            showToast("CPUが回転をセットしました");
+            updateTurnVisuals();
+        } else {
+            const cards = [2,3,4];
+            uiSelectCard(cards[0], true);
+        }
+    } 
+    // --- 防御/移動フェーズ ---
+    else if (state.phase === 'DEFENDER_MOVE') {
+        // 1回目の移動
+        let move1 = aiFindBestMove(); // 引数なし＝制限なし
+        if (move1) {
+            state.defenderMoves.push({ unitId: move1.unitId, toIndex: move1.toIndex });
+            
+            // 仮想反映
+            const u = state.units.find(u => u.id === move1.unitId);
+            const originalQ = u.q; const originalR = u.r;
+            const targetHex = state.hexes[move1.toIndex];
+            u.q = targetHex.q; u.r = targetHex.r;
+
+            // 2回目の移動 (★修正: move1.unitId を渡して除外させる)
+            let move2 = aiFindBestMove(move1.unitId);
+            if (move2) {
+                state.defenderMoves.push({ unitId: move2.unitId, toIndex: move2.toIndex });
+            }
+
+            // 座標戻し
+            u.q = originalQ; u.r = originalR;
+        }
+
+        showToast("CPUが移動しました");
+        await wait(500);
+        startTurnResolution();
+    }
+
+    state.isCpuThinking = false;
+    updateTurnVisuals();
+}
+
+// ユーザー入力
+function uiSelectCard(len, fromCpu = false) {
+    if (state.isCpuThinking && !fromCpu) return;
+    
+    state.selectedCard = len;
+    
+    // 画面上部に選択内容を表示
+    document.getElementById('card-info').innerText = `${len}連 CHAIN`;
+
+    document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.card')[len-2].classList.add('selected');
+    state.phase = 'SELECT_ROTATION';
+
+    state.tempRotationStart = null;
+    state.validDirections = [];
+    
+    // プレイヤーの時だけメッセージを出す
+    if (!fromCpu) {
+        showToast("始点を選んでください");
+    }
+    updateTurnVisuals();
+    
+    // プレイヤー操作時かつPvEのCPUターンなら、ここからCPUアクションを呼ぶ
+    if (!fromCpu && state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
+        triggerCpuAction();
+    }
+}
+
+function uiConfirm() {
+    if (state.isCpuThinking) return;
+    if (state.phase === 'DEFENDER_MOVE') {
+        startTurnResolution();
+    }
+}
+
+function handleInput(x, y) {
+    if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.winner || state.isCpuThinking) return;
+
+    const coords = pixelToHex(x, y);
+    const hexIndex = getHexIndex(coords.q, coords.r);
+    
+    if (hexIndex === -1) return;
+    const clickedHex = state.hexes[hexIndex];
+
+    // 回転設定 (Player only)
+    if (state.phase === 'SELECT_ROTATION') {
+        if (!state.tempRotationStart) {
+            state.tempRotationStart = clickedHex;
+            calcValidDirections(clickedHex);
+            if (state.validDirections.length === 0) {
+                showToast("回転不可"); state.tempRotationStart = null;
+            }
+        } else {
+            const dq = clickedHex.q - state.tempRotationStart.q;
+            const dr = clickedHex.r - state.tempRotationStart.r;
+            const dirIdx = DIRECTIONS.findIndex(d => d.dq === dq && d.dr === dr);
+            const valid = state.validDirections.find(v => v.dirIdx === dirIdx);
+
+            if (valid) {
+                state.hiddenRotation = { indices: valid.indices };
+                state.tempRotationStart = null;
+                state.validDirections = [];
+                state.phase = 'DEFENDER_MOVE';
+                updateTurnVisuals();
+                showToast("移動フェーズ");
+                // CPU防御ターンの場合
+                if (state.gameMode === 'PvE') triggerCpuAction();
+            } else {
+                state.tempRotationStart = clickedHex;
+                calcValidDirections(clickedHex);
+                if (state.validDirections.length === 0) state.tempRotationStart = null;
+            }
+        }
+    }
+    // 移動設定 (Player only)
+    else if (state.phase === 'DEFENDER_MOVE') {
+        const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
+        // CPUの駒は触れない
+        if (state.gameMode === 'PvE' && defenderId === 2) return;
+
+        const unit = getUnitAt(clickedHex.q, clickedHex.r);
+        if (unit && unit.owner === defenderId) {
+            if (state.selectedUnit === unit) state.selectedUnit = null;
+            else state.selectedUnit = unit;
+            if (state.defenderMoves.find(m => m.unitId === unit.id)) {
+                state.defenderMoves = state.defenderMoves.filter(m => m.unitId !== unit.id);
+            }
+        } else if (state.selectedUnit && !unit) {
+            state.defenderMoves.push({ unitId: state.selectedUnit.id, toIndex: hexIndex });
+            state.selectedUnit = null;
+        }
+        updateTurnVisuals();
+    }
+}
+
+// ターン解決
+async function startTurnResolution() {
+    state.phase = 'ANIMATION';
+    updateTurnVisuals();
+
+    // 1. 移動
+    for (let m of state.defenderMoves) {
+        const u = state.units.find(u => u.id === m.unitId);
+        const target = state.hexes[m.toIndex];
+        u.q = target.q; u.r = target.r;
+    }
+    state.defenderMoves = [];
+    await wait(800);
+
+    // 2. 回転
+    const indices = state.hiddenRotation.indices;
+    showToast("ROTATION!");
+    await wait(500);
+    let unitsOnLine = [];
+    indices.forEach((hexIdx, linePos) => {
+        const h = state.hexes[hexIdx];
+        const u = getUnitAt(h.q, h.r);
+        if(u) unitsOnLine.push({ u, linePos });
+    });
+    const len = indices.length;
+    unitsOnLine.forEach(item => {
+        let nextLinePos = (len - 1) - item.linePos;
+        let nextHex = state.hexes[indices[nextLinePos]];
+        item.u.q = nextHex.q; item.u.r = nextHex.r;
+    });
+    await wait(1000);
+
+    // 3. ダメージ
+    let logs = [];
+    state.units.forEach(u => {
+        const h = state.hexes[getHexIndex(u.q, u.r)];
+        
+        // ▼▼▼ 修正: 角は大ダメージ、辺は小ダメージ ▼▼▼
+        if (h.isCorner) {
+            u.hp -= 200; // 角はHPの半分を一気に削る
+            logs.push("CORNER!! -500");
+        } else if (h.isEdge) { 
+            u.hp -= 150; // 普通の外周は100に戻す
+            logs.push("EDGE DMG"); 
+        }
+    });
+    [1, 2].forEach(attackerId => {
+        const myUnits = state.units.filter(u => u.owner === attackerId);
+        if (myUnits.length === 3) {
+            const pts = myUnits.map(u => hexToPixel(u.q, u.r));
+            if (isEquilateral(pts[0], pts[1], pts[2])) {
+                const defenderId = attackerId===1?2:1;
+                state.units.filter(u => u.owner === defenderId).forEach(target => {
+                    const ratio = getTriangleOverlapRatio(target, pts[0], pts[1], pts[2]);
+                    if (ratio > 0.01) { 
+                        const dmg = Math.floor(500 * ratio);
+                        target.hp -= dmg; logs.push(`HIT! -${dmg}`);
+                    }
+                });
+            }
+        }
+    });
+    
+    if(logs.length > 0) showToast(`${logs.length} HITS!`);
+    await wait(1500);
+
+    // 終了判定
+    const p1Lose = state.units.some(u => u.owner === 1 && u.hp <= 0);
+    const p2Lose = state.units.some(u => u.owner === 2 && u.hp <= 0);
+    if (p1Lose || p2Lose) {
+        state.winner = p1Lose && p2Lose ? "DRAW" : (p1Lose ? "RED WINS" : "BLUE WINS");
+        document.getElementById('turn-indicator').innerText = state.winner;
+        showToast("GAME OVER");
+    } else {
+        nextTurn();
+    }
+}
+
+
+function nextTurn() {
+    state.turnPlayer = state.turnPlayer.id === 1 ? P2 : P1;
+    if (state.turnPlayer.id === 1) state.turn++;
+    
+    // 次のターンになったら表示を消す
+    document.getElementById('card-info').innerText = "";
+
+    state.phase = 'SELECT_CARD';
+    state.selectedCard = null;
+    document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+    
+    updateTurnVisuals();
+    showToast(`${state.turnPlayer.name}'s TURN`);
+
+    // CPUターン開始
+    if (state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
+        triggerCpuAction();
+    }
+}
+
+// ユーティリティ
+function calcValidDirections(startHex) {
+    state.validDirections = [];
+    DIRECTIONS.forEach((d, idx) => {
+        const indices = getLineIndices(startHex, state.selectedCard, idx);
+        if (indices) state.validDirections.push({ dirIdx: idx, indices: indices });
+    });
+}
+function getLineIndices(startHex, len, dirIdx) {
+    let indices = [];
+    let curr = startHex;
+    let dir = DIRECTIONS[dirIdx];
+    for(let i=0; i<len; i++) {
+        let idx = getHexIndex(curr.q, curr.r);
+        if (idx === -1) return null;
+        indices.push(idx);
+        curr = { q: curr.q + dir.dq, r: curr.r + dir.dr };
+    }
+    return indices;
+}
+function hexToPixel(q, r) {
+    const x = canvas.width/2 + HEX_SIZE * (Math.sqrt(3) * (q + r/2));
+    const y = canvas.height/2 + HEX_SIZE * (3/2 * r);
+    return { x, y };
+}
+function pixelToHex(x, y) {
+    const pt = { x: x - canvas.width/2, y: y - canvas.height/2 };
+    const q = (Math.sqrt(3)/3 * pt.x - 1/3 * pt.y) / HEX_SIZE;
+    const r = (2/3 * pt.y) / HEX_SIZE;
+    return cubeRound(q, r, -q-r);
+}
+function cubeRound(x, y, z) {
+    let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+    const x_diff = Math.abs(rx - x), y_diff = Math.abs(ry - y), z_diff = Math.abs(rz - z);
+    if (x_diff > y_diff && x_diff > z_diff) rx = -ry - rz;
+    else if (y_diff > z_diff) ry = -rx - rz;
+    else rz = -rx - ry;
+    return { q: rx, r: ry };
+}
+function getHexIndex(q, r) { return state.hexes.findIndex(h => h.q === q && h.r === r); }
+function getUnitAt(q, r) { return state.units.find(u => u.q === q && u.r === r); }
+function isEquilateral(p1, p2, p3) {
+    const d1 = Math.hypot(p1.x-p2.x, p1.y-p2.y);
+    const d2 = Math.hypot(p2.x-p3.x, p2.y-p3.y);
+    const d3 = Math.hypot(p3.x-p1.x, p3.y-p1.y);
+    const avg = (d1 + d2 + d3) / 3;
+    if (avg < 10) return false;
+    return Math.abs(d1 - avg) < avg * 0.1 && Math.abs(d2 - avg) < avg * 0.1 && Math.abs(d3 - avg) < avg * 0.1;
+}
+function getTriangleOverlapRatio(unit, t1, t2, t3) {
+    const unitPos = hexToPixel(unit.q, unit.r);
+    const checkPoints = [{x: unitPos.x, y: unitPos.y}];
+    [0.4, 0.7, 0.95].forEach(rScale => {
+        const r = HEX_SIZE * rScale;
+        for(let i=0; i<8; i++) {
+            const theta = (Math.PI * 2 / 8) * i;
+            checkPoints.push({ x: unitPos.x + r * Math.cos(theta), y: unitPos.y + r * Math.sin(theta) });
+        }
+    });
+    let hit = 0; checkPoints.forEach(p => { if (isPointInTriangle(p, t1, t2, t3)) hit++; });
+    return hit / checkPoints.length;
+}
+
+function isPointInTriangle(p, a, b, c) {
+    const v0 = {x: c.x-a.x, y: c.y-a.y}, v1 = {x: b.x-a.x, y: b.y-a.y}, v2 = {x: p.x-a.x, y: p.y-a.y};
+    const dot00 = v0.x*v0.x+v0.y*v0.y, dot01 = v0.x*v1.x+v0.y*v1.y, dot02 = v0.x*v2.x+v0.y*v2.y;
+    const dot11 = v1.x*v1.x+v1.y*v1.y; 
+    const dot12 = v1.x*v2.x+v1.y*v2.y; 
+    const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    const u = (dot11 * dot02 - dot01 * dot12) * invDenom, v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    return (u >= 0) && (v >= 0) && (u + v < 1);
+}
+
+function resizeCanvas() {
+    const c = document.getElementById('game-area');
+    canvas.width = c.clientWidth; canvas.height = c.clientHeight;
+    HEX_SIZE = Math.min((canvas.width*0.9)/(7*Math.sqrt(3)), (canvas.height*0.9)/(7*1.5));
+}
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.style.opacity = 1;
+    setTimeout(() => t.style.opacity = 0, 2000);
+}
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+window.addEventListener('resize', resizeCanvas);
+canvas.addEventListener('mousedown', e => handleInput(e.offsetX, e.offsetY));
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    handleInput(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+}, {passive: false});
+
+// 最初にCanvasサイズを設定
+resizeCanvas();
+
+/* --- AI Logic Helpers --- */
+
+// 全カード・全回転をシミュレーションして最善手を探す
+function aiFindBestCardAction() {
+    let bestScore = -Infinity;
+    let bestAction = { cardLen: 3, indices: null }; // デフォルト
+
+    const cardLens = [2, 3, 4];
+    
+    // 全カード長
+    for (let len of cardLens) {
+        // 全マス
+        for (let i = 0; i < state.hexes.length; i++) {
+            const h = state.hexes[i];
+            // 全方向
+            for (let dirIdx = 0; dirIdx < DIRECTIONS.length; dirIdx++) {
+                const indices = getLineIndices(h, len, dirIdx);
+                if (!indices) continue;
+
+                // シミュレーション: ユニットの座標を仮更新
+                const simUnits = aiSimulateRotation(indices);
+                
+                // 盤面評価
+                const score = aiEvaluateBoard(simUnits);
+                
+                // スコア更新 (ランダム性を少し入れて同じスコアならバラけさせる)
+                if (score > bestScore + (Math.random() * 5)) { // 僅差なら入れ替え
+                    bestScore = score;
+                    bestAction = { cardLen: len, indices: indices };
+                }
+            }
+        }
+    }
+    return bestAction;
+}
+
+// 全ユニット・全移動先をシミュレーションして最善の移動を探す
+// 引数 excludeUnitId: 計算から除外するユニットID (2回目の移動で使用)
+function aiFindBestMove(excludeUnitId = null) {
+    let bestScore = -Infinity;
+    let bestMove = null;
+
+    const cpuUnits = state.units.filter(u => u.owner === 2);
+    
+    // 現在埋まっている場所
+    const occupied = new Set(state.units.map(u => getHexIndex(u.q, u.r)));
+    state.defenderMoves.forEach(m => occupied.add(m.toIndex));
+
+    for (let u of cpuUnits) {
+        // ★修正: 除外指定されたユニットならスキップ
+        if (excludeUnitId && u.id === excludeUnitId) continue;
+
+        const currentIdx = getHexIndex(u.q, u.r);
+        
+        // 全空きマスを探索
+        for (let i = 0; i < state.hexes.length; i++) {
+            if (occupied.has(i)) continue;
+            if (i === currentIdx) continue;
+
+            // シミュレーション
+            const simUnits = state.units.map(unit => ({ ...unit }));
+            const targetUnit = simUnits.find(unit => unit.id === u.id);
+            const targetHex = state.hexes[i];
+            targetUnit.q = targetHex.q;
+            targetUnit.r = targetHex.r;
+
+            // 評価
+            let score = aiEvaluateBoard(simUnits);
+
+            // 外周回避ロジック
+            if (targetHex.isEdge && score < 500) { 
+                 score -= 1000;
+            }
+
+            if (score > bestScore + (Math.random() * 5)) {
+                bestScore = score;
+                bestMove = { unitId: u.id, toIndex: i };
+            }
+        }
+    }
+    return bestMove;
+}
+
+// 回転結果をシミュレーションしてユニットの仮座標リストを返す
+function aiSimulateRotation(indices) {
+    const simUnits = state.units.map(u => ({ ...u })); // Deep Copy
+    let unitsOnLine = [];
+    indices.forEach((hexIdx, linePos) => {
+        const h = state.hexes[hexIdx];
+        const u = simUnits.find(unit => unit.q === h.q && unit.r === h.r);
+        if(u) unitsOnLine.push({ u, linePos });
+    });
+    
+    const len = indices.length;
+    unitsOnLine.forEach(item => {
+        let nextLinePos = (len - 1) - item.linePos; // 反転
+        let nextHex = state.hexes[indices[nextLinePos]];
+        item.u.q = nextHex.q;
+        item.u.r = nextHex.r;
+    });
+    return simUnits;
+}
+
+// 盤面のスコア計算 (ここがAIの判断基準)
+function aiEvaluateBoard(simUnits) {
+    let score = 0;
+    const cpuId = 2;
+    const playerId = 1;
+
+    // 1. 外周(Edge)の評価
+    simUnits.forEach(u => {
+        const hIdx = getHexIndex(u.q, u.r);
+        if (hIdx !== -1 && state.hexes[hIdx].isEdge) {
+            // ▼▼▼ 修正箇所: ペナルティを大幅強化 (-300 -> -2000) ▼▼▼
+            // HPが減るのを極端に嫌がるように設定
+            if (u.owner === cpuId) score -= 2000;   
+            
+            // 敵を外周に追いやるのは良いこと
+            if (u.owner === playerId) score += 300; 
+        }
+    });
+
+    // 2. 三角形(Triangle)の評価
+    [cpuId, playerId].forEach(owner => {
+        const myUnits = simUnits.filter(u => u.owner === owner);
+        if (myUnits.length === 3) {
+            const pts = myUnits.map(u => hexToPixel(u.q, u.r));
+            // 正三角形ができているか？
+            if (isEquilateral(pts[0], pts[1], pts[2])) {
+                const targetId = owner === cpuId ? playerId : cpuId;
+                const targets = simUnits.filter(u => u.owner === targetId);
+                
+                let hits = 0;
+                targets.forEach(t => {
+                    const ratio = getTriangleOverlapRatio(t, pts[0], pts[1], pts[2]);
+                    if (ratio > 0.01) hits++;
+                });
+
+                if (owner === cpuId) {
+                    // 自分の攻撃チャンス
+                    if (hits > 0) {
+                        score += 5000 * hits; // 攻撃成功は高評価
+                    } else {
+                        score -= 200; // 空振りは少し減点
+                    }
+                } else {
+                    // 敵の攻撃（自分が食らう）
+                    score -= 500; 
+                    if (hits > 0) {
+                        // ▼▼▼ 修正箇所: 被弾の回避優先度をさらに上げる ▼▼▼
+                        // ダメージを受ける状態は「死」と同義として最大級のペナルティ
+                        score -= 20000 * hits; 
+                    }
+                }
+            }
+        }
+    });
+
+    return score;
+}
+
+</script>
+</body>
+</html>
