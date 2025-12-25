@@ -7,18 +7,24 @@
 
     <style>
         /* 全体レイアウト */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #050505;
-            color: #fff;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            transition: background-color 0.5s ease;
-        }
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #050505;
+    color: #fff;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    
+    /* ▼▼▼ 変更点 ▼▼▼ */
+    height: 100vh;       /* 古いブラウザ用 */
+    height: 100dvh;      /* iOS Safariのアドレスバー対策 */
+    touch-action: none;  /* 画面全体のバウンススクロール防止 */
+    -webkit-text-size-adjust: 100%; /* 横向き時の文字サイズ自動拡大防止 */
+    
+    overflow: hidden;
+    transition: background-color 0.5s ease;
+}
 
         /* タイトル画面オーバーレイ */
         #title-screen {
@@ -67,14 +73,20 @@
         }
 
         /* ヘッダー */
-        header {
-            padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
+ header {
+    /* ▼▼▼ 変更点 ▼▼▼ */
+    /* 上部のセーフエリア（ノッチ）と 10px の大きい方を採用 */
+    padding-top: max(10px, env(safe-area-inset-top)); 
+    padding-right: 20px;
+    padding-bottom: 10px;
+    padding-left: 20px;
+
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
 
         /* カード情報テキストのスタイル */
         #card-info {
@@ -115,16 +127,22 @@
         }
 
         /* フッター */
-        footer {
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: max(20px, env(safe-area-inset-bottom));
-        }
+footer {
+    /* ▼▼▼ 変更点 ▼▼▼ */
+    /* 上左右は20px、下は「セーフエリア」か「20px」の大きい方 */
+    padding-top: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
 
         #card-panel {
             display: flex;
@@ -822,10 +840,14 @@ function showToast(msg) {
 }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 window.addEventListener('resize', resizeCanvas);
-canvas.addEventListener('mousedown', e => handleInput(e.offsetX, e.offsetY));
+// キャンバス上でのスクロールを完全に防ぐ
+const preventScroll = (e) => { e.preventDefault(); };
+canvas.addEventListener('touchmove', preventScroll, {passive: false});
+
 canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
+    e.preventDefault(); // ここでスクロール発生を防ぐ
     const r = canvas.getBoundingClientRect();
+    // タッチ位置の補正
     handleInput(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
 }, {passive: false});
 
