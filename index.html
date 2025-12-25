@@ -73,14 +73,13 @@ body {
         }
 
         /* ヘッダー */
- header {
-    /* ▼▼▼ 変更点 ▼▼▼ */
-    /* 上部のセーフエリア（ノッチ）と 10px の大きい方を採用 */
-    padding-top: max(10px, env(safe-area-inset-top)); 
-    padding-right: 20px;
-    padding-bottom: 10px;
-    padding-left: 20px;
-
+header {
+    padding: 10px 20px;
+    
+    /* ▼▼▼ 修正: 10px → 30px に変更 ▼▼▼ */
+    /* これでヘッダー全体が少し下に下がって中央に寄ります */
+    padding-top: max(30px, env(safe-area-inset-top)); 
+    
     background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: space-between;
@@ -126,15 +125,14 @@ body {
             filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
         }
 
-        /* フッター */
+/* フッター */
 footer {
-    /* ▼▼▼ 変更点 ▼▼▼ */
-    /* 上左右は20px、下は「セーフエリア」か「20px」の大きい方 */
-    padding-top: 20px;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
-    
+    padding: 20px;
+
+    /* ▼▼▼ 修正: 20px → 50px に変更 ▼▼▼ */
+    /* これでボタン類が画面下からグッと浮き上がり、中央に寄ります */
+    padding-bottom: max(50px, env(safe-area-inset-bottom));
+
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     display: flex;
@@ -142,7 +140,6 @@ footer {
     gap: 15px;
     border-top: 1px solid rgba(255,255,255,0.1);
 }
-
 
         #card-panel {
             display: flex;
