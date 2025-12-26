@@ -16,11 +16,14 @@ body {
     display: flex;
     flex-direction: column;
     
-    /* ▼▼▼ 変更点 ▼▼▼ */
-    height: 100vh;       /* 古いブラウザ用 */
-    height: 100dvh;      /* iOS Safariのアドレスバー対策 */
-    touch-action: none;  /* 画面全体のバウンススクロール防止 */
-    -webkit-text-size-adjust: 100%; /* 横向き時の文字サイズ自動拡大防止 */
+    /* ▼▼▼ 修正: ガタつき防止の固定設定 ▼▼▼ */
+    position: fixed;     /* 画面を強制的に固定 */
+    width: 100%;         /* 幅を固定 */
+    height: 100svh;      /* 「アドレスバーが出ている時の高さ」で固定 */
+    /* ▲▲▲ 修正ここまで ▲▲▲ */
+    
+    touch-action: none;
+    -webkit-text-size-adjust: 100%;
     
     overflow: hidden;
     transition: background-color 0.5s ease;
@@ -72,45 +75,111 @@ body {
             box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
         }
 
-        /* ヘッダー */
+/* ヘッダー */
 header {
-    padding: 10px 20px;
-    
-    /* ▼▼▼ 修正: 10px → 30px に変更 ▼▼▼ */
-    /* これでヘッダー全体が少し下に下がって中央に寄ります */
-    padding-top: max(30px, env(safe-area-inset-top)); 
-    
-    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    padding-top: max(40px, env(safe-area-inset-top)); 
+    background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
+    border-bottom: none;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    gap: 5px;
+    pointer-events: none;
 }
 
-        /* カード情報テキストのスタイル */
-        #card-info {
-            font-size: 20px;
-            font-weight: 900;
-            color: #ffd700; /* 金色で強調 */
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            letter-spacing: 2px;
-        }
+/* ▼▼▼ ヘッダー内のレイアウト用 (新規追加) ▼▼▼ */
+.score-board {
+    display: flex;
+    justify-content: space-between; /* 左右に配置 */
+    align-items: center;    /* 上下中央揃え */
+    width: 100%;            /* 横幅いっぱい */
+    padding: 0 20px;        /* 左右に少し余白 */
+    box-sizing: border-box; /* パディングを含めた幅計算 */
+}
 
-        #turn-indicator {
-            font-size: 24px;
-            font-weight: 900;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-            letter-spacing: 1px;
-        }
-        #phase-badge {
-            background: #444;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+.player-label {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    width: 80px; /* 幅を固定して中央がズレないようにする */
+    text-align: center;
+    opacity: 0.8;
+}
+
+/* プレイヤーごとの色分け */
+#p1-label {
+    color: #00ccff; /* 青 */
+    text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    text-align: left; /* 左寄せ */
+}
+
+#p2-label {
+    color: #ff3366; /* 赤 */
+    text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+    text-align: right; /* 右寄せ */
+}
+
+/* 既存のターン表示の微調整（余白など） */
+#turn-indicator {
+    /* 既存のスタイルはそのまま維持しつつ、マージンだけ調整 */
+    margin: 0 10px;
+}
+
+/* ▼▼▼ ここが復活させるポイント ▼▼▼ */
+#card-info {
+
+    position: relative;
+    left: 5px; 
+
+    color: #ffd700;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+#card-info svg {
+    height: 100%;       
+    width: auto;        
+    fill: currentColor; 
+    filter: none; /* 光らせない設定 */
+}
+
+
+#turn-indicator {
+    font-size: 40px;
+    font-weight: 900;
+    text-shadow: 0 0 20px currentColor;
+    letter-spacing: 4px;
+    line-height: 1;
+}
+
+#phase-badge {
+    /* ▼▼▼ 追加: 左にずらす設定 ▼▼▼ */
+    position: relative;
+    left: 3px;       /* 上と同じ数字にすると揃います */
+    /* ▲▲▲ 追加ここまで ▲▲▲ */
+
+    height: 24px;
+    line-height: 24px;
+    margin-bottom: 5px;
+
+    background: transparent;
+    padding: 0;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 8px;
+    opacity: 0.8;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    
+    /* 念のため空でも表示領域を維持させる */
+    display: block; 
+    width: 100%;
+    text-align: center;
+}
 
         /* ゲームエリア */
         #game-area {
@@ -121,25 +190,43 @@ header {
             align-items: center;
             overflow: hidden;
         }
-        canvas {
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-        }
+
+canvas {
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    
+
+    position: relative;
+    top: -10px; 
+}
 
 /* フッター */
 footer {
     padding: 20px;
-
-    /* ▼▼▼ 修正: 20px → 50px に変更 ▼▼▼ */
-    /* これでボタン類が画面下からグッと浮き上がり、中央に寄ります */
     padding-bottom: max(50px, env(safe-area-inset-bottom));
-
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    /* gap: 15px;  ← 削除（または 0 に変更） */
+    gap: 0;
     border-top: 1px solid rgba(255,255,255,0.1);
 }
+
+/* 新規追加：操作パネルの高さを強制的に固定する */
+#action-area {
+    width: 100%;
+    height: 80px; /* ここが重要！ボタンより少し大きいサイズで固定 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 念のためカードパネルも幅いっぱい使うように調整 */
+#card-panel {
+    width: 100%;
+    /* display: flex; はJSで制御されるのでそのままでOK */
+}
+
 
         #card-panel {
             display: flex;
@@ -150,9 +237,11 @@ footer {
             background: linear-gradient(145deg, #2a2a2a, #333);
             border: 2px solid #555;
             color: #aaa;
-            padding: 15px 0;
+            padding: 5px 0; /* 余白を少し詰める */
             width: 30%;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             border-radius: 12px;
             font-weight: 800;
             font-size: 16px;
@@ -160,6 +249,20 @@ footer {
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: all 0.2s;
         }
+        /* SVGアイコンの設定 */
+.card svg {
+    height: 28px;
+    width: auto;
+    fill: currentColor;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+    max-width: 95%;
+    
+    /* ▼▼▼ 追加: これで右にずれます ▼▼▼ */
+    position: relative;
+    left: 5px;   /* 数字を増やすともっと右に行きます */
+}
+
+
         .card.selected {
             border-color: #ffd700;
             background: linear-gradient(145deg, #ffd700, #ffaa00);
@@ -169,7 +272,10 @@ footer {
         }
 
         #main-btn {
+            font-family: 'Arial Black', sans-serif; /* 太いフォントに */
+            font-size: 24px; /* 文字を大きく */
             width: 100%;
+            /* ...以下既存のスタイル... */
             padding: 18px;
             background: linear-gradient(90deg, #ff8c00, #ff0080);
             color: #fff;
@@ -208,43 +314,451 @@ footer {
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 100;
         }
+
+/* ▼▼▼ リザルト画面のスタイル (新規追加) ▼▼▼ */
+#result-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 300; /* タイトルより手前に */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none; /* 非表示時はクリック無効 */
+}
+#result-screen.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.result-label {
+    font-size: 24px;
+    color: #fff;
+    letter-spacing: 10px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+#winner-name {
+    font-size: 60px;
+    font-weight: 900;
+    text-shadow: 0 0 30px currentColor;
+    letter-spacing: 5px;
+    transform: scale(0.5);
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#result-screen.show #winner-name {
+    transform: scale(1);
+}
+
+/* ▼▼▼ 中断ボタンのスタイル (新規追加) ▼▼▼ */
+#quit-btn {
+    position: absolute;
+    top: max(10px, env(safe-area-inset-top)); /* スマホのノッチ対策 */
+    left: 10px;
+    z-index: 150; /* ゲーム画面より手前、タイトルより奥 */
+    
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 5px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+}
+#quit-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+/* タイトル画面にいる時はボタンを隠す */
+#title-screen[style*="flex"] ~ #quit-btn {
+    display: none;
+}
+
+/* ▼▼▼ 名前入力欄のスタイル (新規追加) ▼▼▼ */
+#username-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #fff;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    width: 60%;
+    max-width: 250px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    backdrop-filter: blur(5px);
+    transition: all 0.3s;
+}
+
+#username-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#username-input:focus {
+    background: rgba(0, 204, 255, 0.2);
+    border-color: #00ccff;
+    box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+}
+
+/* ▼▼▼ 修正：エモート機能のスタイル ▼▼▼ */
+#emote-container {
+    position: fixed;
+    bottom: 160px;
+    right: 20px;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    
+    /* ▼▼▼ 追加: 透明な枠がタッチを邪魔しないようにする ▼▼▼ */
+    pointer-events: none; 
+}
+
+#emote-btn {
+    /* ▼▼▼ 追加: ボタンだけはクリックできるように戻す ▼▼▼ */
+    pointer-events: auto; 
+    
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fff, #ddd);
+    border: none;
+    font-size: 24px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+#emote-btn:active { transform: scale(0.9); }
+
+#emote-menu {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    padding: 10px;
+    border-radius: 15px;
+    display: flex;
+    flex-wrap: wrap; /* 折り返し */
+    width: 140px;
+    gap: 8px;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    
+    /* アニメーション用設定 */
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#emote-menu.show {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+
+.emote-item {
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    user-select: none;
+}
+.emote-item:hover { transform: scale(1.2); }
+.emote-item:active { transform: scale(0.9); }
+
+/* ▼▼▼ 修正：コンパクト版プレイヤー枠 ▼▼▼ */
+
+/* 1. 親枠の設定（そのまま維持） */
+.score-board {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    height: 60px;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+/* ▼▼▼ 修正：枠線を細くしたコンパクト版 ▼▼▼ */
+
+/* 2. プレイヤー枠 */
+.player-badge {
+    position: absolute;
+    top: 5px;
+    z-index: 100;
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    width: 85px;        /* コンパクト幅 */
+    height: auto;
+    min-height: 40px;
+    
+    align-items: flex-start; 
+    text-align: left;
+    
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    
+    /* ▼▼▼ 変更: 枠線を 1px に細くしました ▼▼▼ */
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+    
+    backdrop-filter: blur(4px);
+    transition: all 0.3s;
+}
+
+/* 位置や影の設定（そのまま維持） */
+.player-badge.p1 {
+    left: 0;
+    /* 枠の色も少し細めの印象に合わせて調整（影で色を出す） */
+    box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) inset;
+    border-color: rgba(0, 204, 255, 0.4); /* 青っぽく光らせる */
+}
+
+.player-badge.p2 {
+    right: 0;
+    box-shadow: 0 0 8px rgba(255, 51, 102, 0.2) inset;
+    border-color: rgba(255, 51, 102, 0.4); /* 赤っぽく光らせる */
+}
+
+/* 文字サイズ設定（前回のまま維持） */
+.badge-name {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.1;
+}
+
+.badge-comment {
+    font-size: 9px;
+    color: #ccc;
+    font-weight: normal;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.2;
+    max-width: 100%;
+    opacity: 0.9;
+}
+
+/* ▼▼▼ 追加：オンライン用ボタンスタイル ▼▼▼ */
+.mode-btn.online {
+    background: linear-gradient(90deg, #00ff99, #00cc88); /* 緑色系 */
+    box-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
+    margin-bottom: 20px; /* 少し離す */
+    border-color: #fff;
+    width: 90%; /* ちょっと大きく目立たせる */
+    max-width: 320px;
+}
+
+/* 合言葉の入力欄（名前入力と同じスタイル＋色変え） */
+#room-input {
+    background: rgba(0, 255, 153, 0.1);
+    border: 2px solid #00ff99;
+    border-radius: 15px;
+    padding: 15px;
+    color: #00ff99;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    width: 60%;
+    max-width: 250px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    backdrop-filter: blur(5px);
+    transition: all 0.3s;
+}
+#room-input::placeholder {
+    color: rgba(0, 255, 153, 0.5);
+}
+#room-input:focus {
+    background: rgba(0, 255, 153, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
+}
+
     </style>
 </head>
 <body>
+
+<div id="result-screen" style="display: none;">
+    <div class="result-label">WINNER</div>
+    <div id="winner-name">BLUE</div>
+    <button class="mode-btn" onclick="backToTitle()" style="margin-top: 40px;">TITLE</button>
+</div>
+
+<button id="quit-btn" onclick="quitGame()">TOP</button>
 
 <div id="title-screen">
     <div class="title-text" style="color: #ffd700; text-shadow: 0 0 20px #ffaa00;">
         HONEY<br>
         <span style="font-size:40px; color:#fff; letter-spacing: 8px;">NOW</span>
     </div>
-    <button class="mode-btn" onclick="startGame('PvP')">Player vs Player</button>
-    <button class="mode-btn cpu" onclick="startGame('PvE')">Player vs CPU</button>
+
+    <input type="text" id="username-input" placeholder="ENTER NAME" maxlength="6">
+    <input type="text" id="comment-input" placeholder="COMMENT" maxlength="30" style="margin-top:10px; font-size:16px;">
+
+    <input type="text" id="room-input" placeholder="SECRET WORD" maxlength="10" style="margin-top:20px; border-color:#00ff99; color:#00ff99;">
+
+    <div style="margin-top: 20px; display:flex; flex-direction:column; align-items:center; width:100%;">
+        
+        <button class="mode-btn online" onclick="startOnlineGame()">ONLINE MATCH</button>
+
+        <button class="mode-btn cpu" onclick="startGame('PvE')">Vs CPU</button>
+    </div>
 </div>
 
 <header>
-    <div id="turn-indicator">BLUE TURN</div>
+    <div class="score-board">
+        <div class="player-badge p1">
+            <div class="badge-name" id="p1-label">PLAYER</div>
+            <div class="badge-comment" id="p1-comment">READY?</div>
+        </div>
+        
+        <div id="turn-indicator">BLUE</div>
+        
+        <div class="player-badge p2">
+            <div class="badge-name" id="p2-label">CPU</div>
+            <div class="badge-comment" id="p2-comment">...</div>
+        </div>
+    </div>
+
     <div id="card-info"></div>
-    <div id="phase-badge">SETUP</div>
+    <div id="phase-badge">PICK CARD</div>
+    </header>
+
 </header>
+
 
 <div id="game-area">
     <canvas id="board"></canvas>
     <div id="toast"></div>
 </div>
 
-<footer>
-    <div id="card-panel">
-        <div class="card" onclick="uiSelectCard(2)">2連</div>
-        <div class="card" onclick="uiSelectCard(3)">3連</div>
-        <div class="card" onclick="uiSelectCard(4)">4連</div>
+<div id="emote-container">
+    <div id="emote-menu">
+        <div class="emote-item" onclick="sendEmote('😀')">😀</div>
+        <div class="emote-item" onclick="sendEmote('🤔')">🤔</div>
+        <div class="emote-item" onclick="sendEmote('😱')">😱</div>
+        <div class="emote-item" onclick="sendEmote('😎')">😎</div>
+        <div class="emote-item" onclick="sendEmote('👏')">👏</div>
+        <div class="emote-item" onclick="sendEmote('😡')">😡</div>
     </div>
-    <button id="main-btn" onclick="uiConfirm()" disabled>決定</button>
-</footer>
+    <button id="emote-btn" onclick="toggleEmoteMenu()">💬</button>
+</div>
 
-<script>
+<footer>
+    <div id="action-area">
+        <div id="card-panel">
+            <div class="card" onclick="uiSelectCard(2)">
+                <svg viewBox="0 0 45 24" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(10, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(27.32, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                </svg>
+            </div>
+            
+            <div class="card" onclick="uiSelectCard(3)">
+                <svg viewBox="0 0 62 24" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(10, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(27.32, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(44.64, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                </svg>
+            </div>
+
+            <div class="card" onclick="uiSelectCard(4)">
+                <svg viewBox="0 0 80 24" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(10, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(27.32, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(44.64, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                    <g transform="translate(61.96, 12)">
+                        <path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" />
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <button id="main-btn" onclick="uiConfirm()" disabled>GO!</button>
+    </div>
+    </footer>
+
+<script type="module">
+  // バージョンは安定版の 10.7.1 に統一するのが無難です
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+  
+  // ▼▼▼ これを追加！データベースを使うための部品 ▼▼▼
+  import { getDatabase, ref, set, onValue, update, remove, get, child } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDswxDswxU_DU-DdhYI8KsANtVeYVP6NN4",
+    authDomain: "honeynow-7fe79.firebaseapp.com",
+    projectId: "honeynow-7fe79",
+    storageBucket: "honeynow-7fe79.firebasestorage.app",
+    messagingSenderId: "745229921816",
+    appId: "1:745229921816:web:345524bda3da61f8c7dd6d",
+    measurementId: "G-RTEVBEYH3M"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  // ▼▼▼ これも追加！データベースの起動 ▼▼▼
+  const db = getDatabase(app);
+
 /** * 定数・設定 */
+
 const BOARD_RADIUS = 3;
+
+/* ▼▼▼ 追加：BGMの設定 ▼▼▼ */
+const bgm = new Audio('bgm.mp3'); // ファイル名と合わせる
+bgm.loop = true;   // ループ再生する
+bgm.volume = 0.3;  // 音量 (0.0 〜 1.0) 
+
 const COLORS = {
+
     p1: '#00ccff', p1Bg: '#001a33',
     p2: '#ff3366', p2Bg: '#2a0a12',
     hex: '#222', hexEdge: '#333',
@@ -272,20 +786,53 @@ let state = {
     selectedUnit: null,
     winner: null,
     frameCount: 0,
-    isCpuThinking: false
+    isCpuThinking: false,
+    emotes: [],
+    damageEffects: []
+
 };
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 let HEX_SIZE = 30;
 
-/* --- 初期化・モード選択 --- */
+/* --- 初期化・モード選択 (シンプル版) --- */
 function startGame(mode) {
     state.gameMode = mode;
+    
+    if (bgm.paused) {
+        bgm.play().catch(e => console.log("BGM再生エラー:", e));
+    }
+
+    // 1. 名前とコメントを取得
+    const inputName = document.getElementById('username-input').value.trim();
+
+    const inputComment = document.getElementById('comment-input').value.trim();
+
+    // デフォルト値の設定
+    const p1Name = inputName || (mode === 'PvE' ? "PLAYER" : "P1");
+    // コメントが空欄なら "..." にする
+    const p1Comment = inputComment || "..."; 
+
+    const p2Name = mode === 'PvE' ? "CPU" : "P2";
+    const p2Comment = "..."; // CPUは常に無言
+
+    // 2. 画面（枠の中）に反映
+    document.getElementById('p1-label').innerText = p1Name;
+    document.getElementById('p1-comment').innerText = p1Comment;
+
+    document.getElementById('p2-label').innerText = p2Name;
+    document.getElementById('p2-comment').innerText = p2Comment;
+
+    // --- ここから下は既存と同じ ---
     document.getElementById('title-screen').style.display = 'none';
+
     initBoardUnits();
     state.turn = 1;
+
     state.turnPlayer = P1;
+    state.turnPlayer.nameDisplay = p1Name; 
+
     state.phase = 'SELECT_CARD';
     state.winner = null;
     state.isCpuThinking = false;
@@ -338,11 +885,11 @@ function gameLoop() {
     if (!state.winner) requestAnimationFrame(gameLoop);
 }
 
-/* --- 描画ロジック --- */
+/* --- 描画ロジック (演出強化・シェイクなし版) --- */
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // グリッド
+    // グリッド描画（既存のまま）
     state.hexes.forEach(h => {
         const {x, y} = hexToPixel(h.q, h.r);
         let color = COLORS.hex;
@@ -363,33 +910,29 @@ function draw() {
         }
     });
 
-    // 回転プレビュー
+    // 回転プレビュー（既存のまま）
     if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
         const startPos = hexToPixel(state.tempRotationStart.q, state.tempRotationStart.r);
-        drawHex(startPos.x, startPos.y, HEX_SIZE * 0.8, '#ffd700', null, 0);
+        drawHex(startPos.x, startPos.y, HEX_SIZE * 0.9, '#ffd700', '#fff', 3);
         state.validDirections.forEach(dirObj => {
-            const indices = dirObj.indices;
-            ctx.beginPath();
-            const pStart = hexToPixel(state.hexes[indices[0]].q, state.hexes[indices[0]].r);
-            ctx.moveTo(pStart.x, pStart.y);
-            indices.forEach(idx => {
-                const p = hexToPixel(state.hexes[idx].q, state.hexes[idx].r);
-                ctx.lineTo(p.x, p.y);
+            dirObj.indices.forEach(idx => {
+                if(state.hexes[idx] === state.tempRotationStart) return;
+                const h = state.hexes[idx];
+                const p = hexToPixel(h.q, h.r);
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                drawHex(p.x, p.y, HEX_SIZE * 0.85, '#ffd700', null, 0); 
+                ctx.restore();
             });
-            ctx.strokeStyle = COLORS.previewLine; ctx.lineWidth = 4;
-            ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-            
-            const pTrig = hexToPixel(state.hexes[indices[1]].q, state.hexes[indices[1]].r);
-            const pulse = 1 + 0.3 * Math.sin(state.frameCount * 0.2);
-            ctx.beginPath(); ctx.arc(pTrig.x, pTrig.y, HEX_SIZE * 0.4 * pulse, 0, Math.PI*2);
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-            
-            const pEnd = hexToPixel(state.hexes[indices[indices.length-1]].q, state.hexes[indices[indices.length-1]].r);
-            drawArrowHead(pEnd.x, pEnd.y);
+            const lastIdx = dirObj.indices[dirObj.indices.length - 1];
+            const lastHex = state.hexes[lastIdx];
+            const endP = hexToPixel(lastHex.q, lastHex.r);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath(); ctx.arc(endP.x, endP.y, 4, 0, Math.PI*2); ctx.fill();
         });
     }
 
-    // トライアングル
+    // トライアングル（既存のまま）
     [1, 2].forEach(ownerId => {
         const myUnits = state.units.filter(u => u.owner === ownerId);
         if (myUnits.length === 3) {
@@ -409,11 +952,17 @@ function draw() {
         }
     });
 
-    // ユニット
+    // ユニット描画
     state.units.forEach(u => {
         const {x, y} = hexToPixel(u.animQ, u.animR);
-        const color = u.owner === 1 ? COLORS.p1 : COLORS.p2;
+        let color = u.owner === 1 ? COLORS.p1 : COLORS.p2;
         
+        // ▼▼▼ 追加: ダメージを受けた瞬間に白く光らせる ▼▼▼
+        if (u.hitFlash > 0) {
+             color = '#fff'; 
+             u.hitFlash--; // タイマーを減らす
+        }
+
         // 移動線
         const move = state.defenderMoves.find(m => m.unitId === u.id);
         if (move) {
@@ -435,7 +984,18 @@ function draw() {
         ctx.fillStyle = '#000'; ctx.fillRect(x - 15, y - 5, 30, 4);
         ctx.fillStyle = hpPct > 0.5 ? '#0f0' : '#f00'; ctx.fillRect(x - 15, y - 5, 30 * Math.max(0, hpPct), 4);
     });
+    
+    drawEmotes();
 }
+
+/* ▼▼▼ 修正: ダメージ演出 (光るだけ) ▼▼▼ */
+function addDamageEffect(unit, damage) {
+    // 数字が出る処理は削除しました
+
+    // ユニットを光らせるタイマーをセット
+    unit.hitFlash = 10; 
+}
+
 
 function drawHex(x, y, size, fill, stroke, lw) {
     ctx.beginPath();
@@ -454,41 +1014,65 @@ function drawArrowHead(x, y) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(
 /* --- UI制御 & CPUロジック --- */
 function updateTurnVisuals() {
     const p = state.turnPlayer;
+    
+    // 背景色はそのまま
     document.body.style.backgroundColor = p.bg;
+    
     const indicator = document.getElementById('turn-indicator');
-    indicator.innerText = `${p.name}'S TURN`;
-    indicator.style.color = p.color;
-
     const badge = document.getElementById('phase-badge');
     const cardPanel = document.getElementById('card-panel');
     const mainBtn = document.getElementById('main-btn');
+
+    // ▼▼▼ 修正: 名前だけを表示（TURNは消す） ▼▼▼
+    indicator.innerText = p.name; 
+    indicator.style.color = p.color;
 
     // CPUターン中は操作無効
     if (state.isCpuThinking) {
         cardPanel.style.pointerEvents = 'none';
         mainBtn.disabled = true;
-        badge.innerText = "CPU THINKING...";
+        // ▼▼▼ 修正: シンプルに ▼▼▼
+        badge.innerText = "WAIT"; 
+        badge.style.color = "#aaa";
         return;
     }
     cardPanel.style.pointerEvents = 'auto';
 
+    // 自分のターン（攻撃セットアップ）
     if (state.phase === 'SELECT_CARD') {
-        badge.innerText = "1. SELECT CARD";
+        // ▼▼▼ 修正: 短い単語へ ▼▼▼
+        badge.innerText = "PICK CARD";
+        badge.style.color = "#fff";
         cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+        
     } else if (state.phase === 'SELECT_ROTATION') {
-        badge.innerText = "2. SET ROTATION";
+        // ▼▼▼ 修正: 狙え！というニュアンス ▼▼▼
+        badge.innerText = "AIMING"; 
+        badge.style.color = "#fff";
         cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+        
     } else if (state.phase === 'DEFENDER_MOVE') {
-        badge.innerText = "3. EVASION MOVE";
+        // 相手のターン（回避フェーズ）
+        // ▼▼▼ 修正: 緊急感を出す ▼▼▼
+        badge.innerText = "MOVE"; 
+        badge.style.color = "#ff3333"; // 赤文字で警告感
+
         cardPanel.style.display = 'none'; mainBtn.style.display = 'block';
+        
         const defender = state.turnPlayer.id === 1 ? P2 : P1;
-        mainBtn.innerText = `移動完了 (${state.defenderMoves.length}/2)`;
+        
+        // ボタンの文字も変更
+        mainBtn.innerText = "GO";
+        
         mainBtn.disabled = false;
-        indicator.innerText = `${defender.name}'S MOVE`;
+        
+        // 手番表示を防御側プレイヤー名に変更
+        indicator.innerText = defender.name;
         indicator.style.color = defender.color;
         document.body.style.backgroundColor = defender.bg;
+        
     } else {
-        badge.innerText = "EXECUTING...";
+        badge.innerText = "";
     }
 }
 
@@ -562,10 +1146,22 @@ async function triggerCpuAction() {
 function uiSelectCard(len, fromCpu = false) {
     if (state.isCpuThinking && !fromCpu) return;
     
+    // ▼▼▼ 追加：オンラインなら相手に送信 ▼▼▼
+    // (fromCpuフラグがある＝相手からの通信で動いている時は、再送信しない)
+    if (state.gameMode === 'ONLINE' && !fromCpu) {
+        sendAction('SELECT_CARD', { value: len });
+    }
+    // ▲▲▲ 追加ここまで ▲▲▲
+
     state.selectedCard = len;
     
-    // 画面上部に選択内容を表示
-    document.getElementById('card-info').innerText = `${len}連 CHAIN`;
+    // ... (以下、既存のアイコン表示コードなどはそのまま) ...
+    const svgs = {
+        2: `<svg viewBox="0 0 45 24" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(27.32, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g></svg>`,
+        3: `<svg viewBox="0 0 62 24" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(27.32, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(44.64, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g></svg>`,
+        4: `<svg viewBox="0 0 80 24" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(27.32, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(44.64, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(61.96, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g></svg>`
+    };
+    document.getElementById('card-info').innerHTML = svgs[len];
 
     document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
     document.querySelectorAll('.card')[len-2].classList.add('selected');
@@ -574,13 +1170,13 @@ function uiSelectCard(len, fromCpu = false) {
     state.tempRotationStart = null;
     state.validDirections = [];
     
-    // プレイヤーの時だけメッセージを出す
+    // プレイヤーの時だけメッセージ
     if (!fromCpu) {
-        showToast("始点を選んでください");
+        showToast("軸を選んでください");
     }
     updateTurnVisuals();
     
-    // プレイヤー操作時かつPvEのCPUターンなら、ここからCPUアクションを呼ぶ
+    // PvE CPUトリガー (ここは変更なし)
     if (!fromCpu && state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
         triggerCpuAction();
     }
@@ -588,7 +1184,21 @@ function uiSelectCard(len, fromCpu = false) {
 
 function uiConfirm() {
     if (state.isCpuThinking) return;
+
+    // ★追加：オンラインで自分の番じゃないなら押せない
+    if (state.gameMode === 'ONLINE') {
+        // 防御フェーズの決定ボタンなので、防御側プレイヤー(myPlayerId)かどうかチェック
+        const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
+        if (defenderId !== myPlayerId) return;
+    }
+
     if (state.phase === 'DEFENDER_MOVE') {
+        // ▼▼▼ 追加：移動内容を送信 ▼▼▼
+        if (state.gameMode === 'ONLINE') {
+            sendAction('MOVE', { moves: state.defenderMoves });
+        }
+        // ▲▲▲ 追加ここまで ▲▲▲
+
         startTurnResolution();
     }
 }
@@ -596,13 +1206,21 @@ function uiConfirm() {
 function handleInput(x, y) {
     if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.winner || state.isCpuThinking) return;
 
+    // ★追加：オンラインで相手のターンの時は操作させない
+    if (state.gameMode === 'ONLINE' && state.turnPlayer.id !== myPlayerId && state.phase !== 'DEFENDER_MOVE') return;
+    // 防御フェーズ(DEFENDER_MOVE)の時は、防御側のプレイヤーだけが操作できる
+    if (state.gameMode === 'ONLINE' && state.phase === 'DEFENDER_MOVE') {
+        const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
+        if (defenderId !== myPlayerId) return;
+    }
+
     const coords = pixelToHex(x, y);
     const hexIndex = getHexIndex(coords.q, coords.r);
     
     if (hexIndex === -1) return;
     const clickedHex = state.hexes[hexIndex];
 
-    // 回転設定 (Player only)
+    // 回転設定
     if (state.phase === 'SELECT_ROTATION') {
         if (!state.tempRotationStart) {
             state.tempRotationStart = clickedHex;
@@ -611,41 +1229,68 @@ function handleInput(x, y) {
                 showToast("回転不可"); state.tempRotationStart = null;
             }
         } else {
-            const dq = clickedHex.q - state.tempRotationStart.q;
-            const dr = clickedHex.r - state.tempRotationStart.r;
-            const dirIdx = DIRECTIONS.findIndex(d => d.dq === dq && d.dr === dr);
-            const valid = state.validDirections.find(v => v.dirIdx === dirIdx);
+            const clickedIndex = getHexIndex(clickedHex.q, clickedHex.r);
+            const valid = state.validDirections.find(v => v.indices.includes(clickedIndex));
 
             if (valid) {
+                // 確定！
                 state.hiddenRotation = { indices: valid.indices };
+                
+                // ▼▼▼ 追加：回転を送信 ▼▼▼
+                if (state.gameMode === 'ONLINE') {
+                    sendAction('ROTATE', { indices: valid.indices });
+                }
+                // ▲▲▲ 追加ここまで ▲▲▲
+
                 state.tempRotationStart = null;
                 state.validDirections = [];
                 state.phase = 'DEFENDER_MOVE';
                 updateTurnVisuals();
                 showToast("移動フェーズ");
-                // CPU防御ターンの場合
+                
                 if (state.gameMode === 'PvE') triggerCpuAction();
             } else {
+                // キャンセル
                 state.tempRotationStart = clickedHex;
                 calcValidDirections(clickedHex);
-                if (state.validDirections.length === 0) state.tempRotationStart = null;
+                if (state.validDirections.length === 0) {
+                    state.tempRotationStart = null;
+                }
             }
         }
     }
-    // 移動設定 (Player only)
+
+    // 移動設定
     else if (state.phase === 'DEFENDER_MOVE') {
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        // CPUの駒は触れない
+        // CPUや、オンラインの相手の駒は触れない
         if (state.gameMode === 'PvE' && defenderId === 2) return;
 
         const unit = getUnitAt(clickedHex.q, clickedHex.r);
+        
+        // 自分のユニットを選んだ場合
         if (unit && unit.owner === defenderId) {
-            if (state.selectedUnit === unit) state.selectedUnit = null;
-            else state.selectedUnit = unit;
+            if (state.selectedUnit === unit) {
+                state.selectedUnit = null;
+            } else {
+                state.selectedUnit = unit;
+            }
             if (state.defenderMoves.find(m => m.unitId === unit.id)) {
                 state.defenderMoves = state.defenderMoves.filter(m => m.unitId !== unit.id);
             }
+
+        // 空きマスを選んだ場合
         } else if (state.selectedUnit && !unit) {
+            const isReserved = state.defenderMoves.find(m => m.toIndex === hexIndex);
+            if (isReserved) {
+                showToast("既に選択されています");
+                return;
+            }
+            if (state.defenderMoves.length >= 2) {
+                showToast("移動できるのは2体まで！");
+                return;
+            }
+
             state.defenderMoves.push({ unitId: state.selectedUnit.id, toIndex: hexIndex });
             state.selectedUnit = null;
         }
@@ -685,20 +1330,26 @@ async function startTurnResolution() {
     });
     await wait(1000);
 
-    // 3. ダメージ
-    let logs = [];
+    // 3. ダメージ（ここを丸ごと書き換え）
+    
+    // 角・辺のダメージチェック
     state.units.forEach(u => {
         const h = state.hexes[getHexIndex(u.q, u.r)];
         
-        // ▼▼▼ 修正: 角は大ダメージ、辺は小ダメージ ▼▼▼
+        let damage = 0;
         if (h.isCorner) {
-            u.hp -= 200; // 角はHPの半分を一気に削る
-            logs.push("CORNER!! -500");
+            damage = 500; // 角は大ダメージ
         } else if (h.isEdge) { 
-            u.hp -= 150; // 普通の外周は100に戻す
-            logs.push("EDGE DMG"); 
+            damage = 100; // 辺は小ダメージ
+        }
+
+        if (damage > 0) {
+            u.hp -= damage;
+            addDamageEffect(u, damage); // ★ここで演出呼び出し！
         }
     });
+
+    // トライアングル攻撃のダメージチェック
     [1, 2].forEach(attackerId => {
         const myUnits = state.units.filter(u => u.owner === attackerId);
         if (myUnits.length === 3) {
@@ -709,23 +1360,27 @@ async function startTurnResolution() {
                     const ratio = getTriangleOverlapRatio(target, pts[0], pts[1], pts[2]);
                     if (ratio > 0.01) { 
                         const dmg = Math.floor(500 * ratio);
-                        target.hp -= dmg; logs.push(`HIT! -${dmg}`);
+                        target.hp -= dmg;
+                        addDamageEffect(target, dmg); // ★ここでも演出呼び出し！
                     }
                 });
             }
         }
     });
     
-    if(logs.length > 0) showToast(`${logs.length} HITS!`);
+    // showToast は削除して呼び出さない
     await wait(1500);
+
 
     // 終了判定
     const p1Lose = state.units.some(u => u.owner === 1 && u.hp <= 0);
     const p2Lose = state.units.some(u => u.owner === 2 && u.hp <= 0);
+    
     if (p1Lose || p2Lose) {
-        state.winner = p1Lose && p2Lose ? "DRAW" : (p1Lose ? "RED WINS" : "BLUE WINS");
-        document.getElementById('turn-indicator').innerText = state.winner;
-        showToast("GAME OVER");
+        // ▼▼▼ ここを変更 ▼▼▼
+        state.winner = p1Lose && p2Lose ? "DRAW" : (p1Lose ? "RED" : "BLUE"); // 名前だけにする
+        showResult(state.winner); // リザルト画面を表示
+        // ▲▲▲ 変更ここまで ▲▲▲
     } else {
         nextTurn();
     }
@@ -803,16 +1458,42 @@ function isEquilateral(p1, p2, p3) {
 }
 function getTriangleOverlapRatio(unit, t1, t2, t3) {
     const unitPos = hexToPixel(unit.q, unit.r);
-    const checkPoints = [{x: unitPos.x, y: unitPos.y}];
-    [0.4, 0.7, 0.95].forEach(rScale => {
-        const r = HEX_SIZE * rScale;
-        for(let i=0; i<8; i++) {
-            const theta = (Math.PI * 2 / 8) * i;
-            checkPoints.push({ x: unitPos.x + r * Math.cos(theta), y: unitPos.y + r * Math.sin(theta) });
+    
+    // ▼ 修正：見た目のサイズ(0.7)に判定範囲を合わせる！
+    // これで「触れてないのに当たった」現象が消えます
+    const visualRadius = HEX_SIZE * 0.7; 
+
+    let hitCount = 0;
+    let totalPoints = 0;
+
+    // 1. 中心点のチェック
+    if (isPointInTriangle(unitPos, t1, t2, t3)) hitCount++;
+    totalPoints++;
+
+    // 2. 周囲の点のチェック（精度を上げるため3段階に増量）
+    const rings = [
+        { r: 0.4, count: 6 },   // 内側
+        { r: 0.8, count: 8 },   // 中間
+        { r: 1.0, count: 12 }   // 外周（一番重要なので多めに）
+    ];
+
+    rings.forEach(ring => {
+        // visualRadius を基準に計算するので、見た目からはみ出さない
+        const r = visualRadius * ring.r;
+        
+        for(let i = 0; i < ring.count; i++) {
+            const theta = (Math.PI * 2 / ring.count) * i;
+            const p = {
+                x: unitPos.x + r * Math.cos(theta),
+                y: unitPos.y + r * Math.sin(theta)
+            };
+            
+            if (isPointInTriangle(p, t1, t2, t3)) hitCount++;
+            totalPoints++;
         }
     });
-    let hit = 0; checkPoints.forEach(p => { if (isPointInTriangle(p, t1, t2, t3)) hit++; });
-    return hit / checkPoints.length;
+
+    return hitCount / totalPoints;
 }
 
 function isPointInTriangle(p, a, b, c) {
@@ -1011,6 +1692,302 @@ function aiEvaluateBoard(simUnits) {
 
     return score;
 }
+
+/* --- リザルト画面制御 (新規追加) --- */
+
+function showResult(winnerName) {
+    const screen = document.getElementById('result-screen');
+    const nameEl = document.getElementById('winner-name');
+    
+    // 表示テキストと色を設定
+    if (winnerName === "DRAW") {
+        nameEl.innerText = "DRAW";
+        nameEl.style.color = "#fff";
+    } else {
+        nameEl.innerText = winnerName;
+        // 勝者の色を適用
+        nameEl.style.color = (winnerName === "BLUE") ? COLORS.p1 : COLORS.p2;
+    }
+
+    // 画面を表示
+    screen.style.display = 'flex';
+    // 少し遅らせてクラス追加（アニメーション用）
+    setTimeout(() => {
+        screen.classList.add('show');
+    }, 10);
+}
+
+function backToTitle() {
+    // リザルト画面を隠す
+    const resScreen = document.getElementById('result-screen');
+    resScreen.classList.remove('show');
+    setTimeout(() => resScreen.style.display = 'none', 500);
+
+    // ゲーム内要素のクリア（念のため）
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('turn-indicator').innerText = "";
+    document.getElementById('card-info').innerHTML = "";
+
+    // タイトル画面を表示
+    document.getElementById('title-screen').style.display = 'flex';
+}
+
+/* --- 中断機能 (新規追加) --- */
+function quitGame() {
+    // 誤タップ防止の確認
+    if (!confirm("タイトル画面に戻りますか？\n（現在の対戦は破棄されます）")) {
+        return;
+    }
+
+    // ゲームループを止めるためのフラグを立てる
+    state.winner = "QUIT"; 
+    
+    // CPU思考中フラグも折る（念のため）
+    state.isCpuThinking = false;
+
+    // 既存のタイトル戻り関数を呼び出す
+    backToTitle();
+}
+
+/* --- エモート機能 (新規追加) --- */
+
+// メニューの開閉
+function toggleEmoteMenu() {
+    document.getElementById('emote-menu').classList.toggle('show');
+}
+
+/* ▼▼▼ 修正：Canvasの枠に関係なく表示する最強版 ▼▼▼ */
+
+// 1. 描画関数はもう使わないので空にする
+function drawEmotes() {
+    // DOM要素で表示するため、ここでの処理は不要
+}
+
+// 2. 新しいエモート表示処理
+function sendEmote(emoji, forceOwnerId = null) {
+    // メニューを閉じる
+    document.getElementById('emote-menu').classList.remove('show');
+
+    let ownerId;
+    if (forceOwnerId) {
+        ownerId = forceOwnerId;
+    } else {
+        if (state.gameMode === 'PvE') ownerId = 1;
+        else ownerId = state.turnPlayer.id;
+    }
+
+    // ★HTML要素（div）を新しく作る
+    const el = document.createElement('div');
+    el.innerText = emoji;
+    
+    // スタイル設定（画面のどこにでも出せる設定）
+    el.style.position = 'fixed';
+    el.style.zIndex = '9999';       // 画面の何よりも手前に
+    el.style.fontSize = '40px';     // 大きさ
+    el.style.fontWeight = 'bold';
+    el.style.pointerEvents = 'none'; // クリックの邪魔をしない
+    el.style.textShadow = '0 4px 10px rgba(0,0,0,0.5)'; // 影をつけて見やすく
+    el.style.fontFamily = "Arial, sans-serif";
+
+    // 位置設定（ここで好きな高さを指定できます！）
+    const topPosition = '120px'; // ★ここを変えればいくらでも上にできます
+
+    if (ownerId === 1) {
+        // P1 (左側)
+        el.style.left = '40px'; 
+        el.style.top = topPosition;
+        el.style.transformOrigin = 'center left'; // 左から出る感じ
+    } else {
+        // P2 (右側)
+        el.style.right = '40px'; // 右端からの距離
+        el.style.top = topPosition;
+        el.style.transformOrigin = 'center right'; // 右から出る感じ
+    }
+
+    // 画面に追加
+    document.body.appendChild(el);
+
+    // アニメーション設定 (Web Animations API)
+    // ポンッと出て、ふんわり上に消える動き
+    const anim = el.animate([
+        { transform: 'scale(0) translateY(20px)', opacity: 0 },    // 0%: 小さくて透明
+        { transform: 'scale(1.2) translateY(0)', opacity: 1, offset: 0.1 }, // 10%: ポンッと拡大
+        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.2 }, // 20%: 元のサイズに
+        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.7 }, // 70%: 待機
+        { transform: 'scale(1.0) translateY(-50px)', opacity: 0 }  // 100%: 上に昇って消える
+    ], {
+        duration: 1500, // 1.5秒かけて動く
+        easing: 'ease-out'
+    });
+
+    // アニメが終わったらゴミ掃除（要素を削除）
+    anim.onfinish = () => el.remove();
+}
+
+/* ▼▼▼ オンライン対戦機能 (Firebase版) ▼▼▼ */
+
+let roomId = null;
+let myPlayerId = 0; // 1=P1(青), 2=P2(赤)
+
+// オンラインゲーム開始ボタン
+window.startOnlineGame = function() { // type="module"なのでwindowに紐付け
+    const inputRoom = document.getElementById('room-input').value.trim();
+    if (!inputRoom) {
+        alert("合言葉を入力してください");
+        return;
+    }
+    
+    // 英数字以外を除去して安全にする
+    roomId = "rooms/" + inputRoom.replace(/[^a-zA-Z0-9]/g, '');
+    const myName = document.getElementById('username-input').value.trim() || "PLAYER";
+
+    // 部屋を見に行く
+    const roomRef = ref(db, roomId);
+    get(roomRef).then((snapshot) => {
+        if (!snapshot.exists()) {
+            // 部屋がない → 自分がホスト(P1)で作る
+            createRoom(myName);
+        } else {
+            const data = snapshot.val();
+            if (!data.p2) {
+                // P2が空いている → 参加する
+                joinRoom(myName);
+            } else {
+                alert("その部屋は満員です！別の合言葉を使ってください。");
+            }
+        }
+    }).catch((error) => {
+        console.error(error);
+        alert("通信エラーが発生しました");
+    });
+};
+
+// 部屋を作る(P1)
+function createRoom(name) {
+    myPlayerId = 1;
+    // 初期データをセット
+    set(ref(db, roomId), {
+        p1: name,
+        p2: null,
+        status: "waiting",
+        turn: 1,
+        lastUpdate: Date.now()
+    });
+    
+    waitForOpponent();
+}
+
+// 部屋に参加する(P2)
+function joinRoom(name) {
+    myPlayerId = 2;
+    // 参加を書き込む
+    update(ref(db, roomId), {
+        p2: name,
+        status: "ready"
+    });
+    
+    startGameOnline(name);
+}
+
+// 相手待ち画面
+function waitForOpponent() {
+    document.getElementById('title-screen').style.display = 'none';
+    showToast("対戦相手を待っています...");
+    
+    // 相手が入ってきたか監視
+    const p2Ref = ref(db, roomId + "/p2");
+    onValue(p2Ref, (snapshot) => {
+        if (snapshot.exists()) {
+            showToast("相手が参加しました！");
+            startGameOnline(snapshot.val()); // ゲーム開始へ
+        }
+    });
+}
+
+// ゲーム開始処理（共通）
+function startGameOnline(opponentName) {
+    // 共通のゲーム開始処理
+    state.gameMode = 'ONLINE';
+    state.turn = 1;
+    state.turnPlayer = P1;
+    state.phase = 'SELECT_CARD';
+    state.winner = null;
+    state.isCpuThinking = false;
+    
+    // 名前設定
+    if (myPlayerId === 1) {
+        // 自分P1, 相手P2
+        document.getElementById('p1-label').innerText = document.getElementById('username-input').value || "YOU";
+        document.getElementById('p2-label').innerText = opponentName || "OPPONENT";
+    } else {
+        // 自分P2, 相手P1
+        // P1の名前を取得する必要があるが、一旦簡易的に
+        get(ref(db, roomId + "/p1")).then((snap) => {
+             document.getElementById('p2-label').innerText = document.getElementById('username-input').value || "YOU";
+             document.getElementById('p1-label').innerText = snap.val() || "OPPONENT";
+        });
+    }
+
+    document.getElementById('title-screen').style.display = 'none';
+    initBoardUnits();
+    resizeCanvas();
+    updateTurnVisuals();
+    gameLoop();
+    
+    // ★ここから通信監視スタート
+    startOnlineListener();
+}
+
+// 相手の操作を受信して反映する
+function startOnlineListener() {
+    // "action" というデータが変わったら検知
+    onValue(ref(db, roomId + "/action"), (snapshot) => {
+        const action = snapshot.val();
+        if (!action) return;
+        
+        // 自分が送ったデータなら無視
+        if (action.sender === myPlayerId) return;
+
+        // 相手の操作を再現
+        if (action.type === 'SELECT_CARD') {
+            // カード選択の同期
+            uiSelectCard(action.value, true); // true=操作制限無視フラグ(既存関数に修正が必要かも)
+        } else if (action.type === 'ROTATE') {
+            // 回転の同期
+            state.hiddenRotation = { indices: action.indices };
+            state.phase = 'DEFENDER_MOVE';
+            updateTurnVisuals();
+            showToast("相手が回転を決めました");
+        } else if (action.type === 'MOVE') {
+            // 移動の同期
+            state.defenderMoves = action.moves;
+            startTurnResolution(); // ターン解決へ
+        }
+    });
+}
+
+// 自分の操作を送信する関数（既存のコードから呼び出す）
+function sendAction(type, data) {
+    if (state.gameMode !== 'ONLINE') return;
+    
+    set(ref(db, roomId + "/action"), {
+        type: type,
+        sender: myPlayerId,
+        ...data,
+        timestamp: Date.now()
+    });
+}
+
+/* ▲▲▲ オンライン機能ここまで ▲▲▲ */
+/* ▼▼▼ 追加：HTMLのボタンから関数を呼べるようにする設定 ▼▼▼ */
+window.startGame = startGame;
+window.uiSelectCard = uiSelectCard;
+window.uiConfirm = uiConfirm;
+window.quitGame = quitGame;
+window.backToTitle = backToTitle;
+window.toggleEmoteMenu = toggleEmoteMenu;
+window.sendEmote = sendEmote;
+window.startOnlineGame = startOnlineGame; // これも忘れずに
 
 </script>
 </body>
