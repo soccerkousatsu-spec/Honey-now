@@ -881,6 +881,15 @@ function handleInput(x, y) {
                 showToast("回転不可"); state.tempRotationStart = null;
             }
         } else {
+            // ▼▼▼ 追加：同じ場所をクリックしたらキャンセル ▼▼▼
+            if (state.tempRotationStart.q === clickedHex.q && state.tempRotationStart.r === clickedHex.r) {
+                state.tempRotationStart = null;
+                state.validDirections = [];
+                showToast("キャンセルしました");
+                return; // ここで処理を終わらせる
+            }
+            // ▲▲▲ 追加ここまで ▲▲▲
+
             const clickedIndex = getHexIndex(clickedHex.q, clickedHex.r);
             const valid = state.validDirections.find(v => v.indices.includes(clickedIndex));
 
@@ -888,12 +897,10 @@ function handleInput(x, y) {
                 // 確定！
                 state.hiddenRotation = { indices: valid.indices };
                 
-                // ▼▼▼ 追加：回転を送信 ▼▼▼
+                // ... (中略: 送信処理など) ...
                 if (state.gameMode === 'ONLINE') {
                     sendAction('ROTATE', { indices: valid.indices });
                 }
-                // ▲▲▲ 追加ここまで ▲▲▲
-
 
                 state.tempRotationStart = null;
                 state.validDirections = [];
@@ -901,14 +908,12 @@ function handleInput(x, y) {
                 
                 updateTurnVisuals();
                 showToast("移動フェーズ");
-
-                /* ▼▼▼ 追加：防御フェーズになったらタイマーをリセット ▼▼▼ */
                 resetTimer();
                 
                 if (state.gameMode === 'PvE') triggerCpuAction();
             }
-else {
-                // キャンセル
+            else {
+                // 別の場所をクリックした場合（新しい軸として選び直す）
                 state.tempRotationStart = clickedHex;
                 calcValidDirections(clickedHex);
                 if (state.validDirections.length === 0) {
