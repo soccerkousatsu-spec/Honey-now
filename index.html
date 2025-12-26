@@ -1919,17 +1919,22 @@ window.startOnlineGame = function() {
         return;
     }
     
-    // 英数字以外を除去した文字列を作る
-    const sanitizedRoomId = inputRoom.replace(/[^a-zA-Z0-9]/g, '');
+    // ▼▼▼ 修正ポイント ▼▼▼
+    // 以前：英数字以外を全部消していた（日本語も消えていた）
+    // const sanitizedRoomId = inputRoom.replace(/[^a-zA-Z0-9]/g, '');
 
-    // ★修正1：文字が全部消えてしまったら警告を出して止める
+    // 今回：データベースで禁止されている「. # $ [ ] /」だけを消す
+    // これなら「ひみつ」「テスト」「★」などもそのまま通ります
+    const sanitizedRoomId = inputRoom.replace(/[.#$\[\]\/]/g, '');
+    // ▲▲▲ 修正ここまで ▲▲▲
+
     if (!sanitizedRoomId) {
-        alert("合言葉は「半角英数字」で入力してください！\n（日本語や記号は使えません）");
+        // 記号しか入力していなかった場合の対策
+        alert("その合言葉は使えません（禁止記号が含まれています）");
         return;
     }
 
-    // ★修正2：保存場所を 'rooms_v2' に変更して、心機一転させる
-    // (以前の rooms/ に残っているバグったデータを無視するため)
+    // 保存場所の設定（前回同様 rooms_v2 にしておくと安全です）
     roomId = "rooms_v2/" + sanitizedRoomId;
     
     const myName = document.getElementById('username-input').value.trim() || "PLAYER";
@@ -1938,16 +1943,14 @@ window.startOnlineGame = function() {
     const roomRef = ref(db, roomId);
     get(roomRef).then((snapshot) => {
         if (!snapshot.exists()) {
-            // 部屋がない → 自分がホスト（ランダムで席を決める）
+            // 部屋がない → 自分がホスト
             createRoom(myName);
         } else {
             const data = snapshot.val();
             // 空いている席を探す
             if (!data.p1) {
-                // P1(青)が空いている → P1になる
                 joinRoom(myName, 1);
             } else if (!data.p2) {
-                // P2(赤)が空いている → P2になる
                 joinRoom(myName, 2);
             } else {
                 alert("その部屋は満員です！別の合言葉を使ってください。");
@@ -2002,11 +2005,30 @@ function joinRoom(name, joinAsId) {
     });
 }
 
-
 // 相手待ち画面
 function waitForOpponent() {
     document.getElementById('title-screen').style.display = 'none';
-    showToast("対戦相手を待っています...");
+    
+    // ▼▼▼ 修正：URL生成とコピー機能 ▼▼▼
+    
+    // 現在の合言葉を取得（入力欄からではなく、roomIdからv2/などを除いたものを復元しても良いが、入力欄が手っ取り早い）
+    const inputVal = document.getElementById('room-input').value;
+    
+    // 招待用URLを作る (今のURL + ?room=合言葉)
+    // 注意：すでに?room=がついている場合に対応するため、一旦消してから付け直す
+    const baseUrl = window.location.href.split('?')[0];
+    const inviteUrl = `${baseUrl}?room=${inputVal}`;
+
+    // クリップボードにコピーする
+    navigator.clipboard.writeText(inviteUrl).then(() => {
+        showToast("招待URLをコピーしました！友達に送ろう！");
+    }).catch(err => {
+        // コピーに失敗した場合（ブラウザのセキュリティ制限など）
+        console.error('コピー失敗:', err);
+        showToast("対戦相手を待っています...");
+    });
+
+    // ▲▲▲ 修正ここまで ▲▲▲
     
     // 自分がP1ならP2を待つ、自分がP2ならP1を待つ
     const waitTargetId = myPlayerId === 1 ? 2 : 1;
@@ -2187,6 +2209,23 @@ window.backToTitle = backToTitle;
 window.toggleEmoteMenu = toggleEmoteMenu;
 window.sendEmote = sendEmote;
 
+// ▼▼▼ 追加：URLから合言葉を読み取る処理 ▼▼▼
+window.addEventListener('DOMContentLoaded', () => {
+    // URLの「?room=...」の部分を見る
+    const params = new URLSearchParams(window.location.search);
+    const inviteRoom = params.get('room');
+
+    if (inviteRoom) {
+        // 合言葉欄にセットする
+        document.getElementById('room-input').value = inviteRoom;
+        
+        // 名前入力欄にフォーカスを当てる（すぐに名前を入れて始められるように）
+        document.getElementById('username-input').focus();
+        
+        // わかりやすいようにメッセージを出す
+        showToast("招待コードを読み込みました！名前を入力してSTART！");
+    }
+});
 
 </script>
 </body>
