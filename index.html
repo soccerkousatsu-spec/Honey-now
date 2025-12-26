@@ -600,13 +600,22 @@ footer {
 
 /* ▼▼▼ 追加：タイマーのデザイン ▼▼▼ */
 #timer-display {
-    font-size: 32px;
+    /* ▼ 盤面に影響を与えないための魔法の呪文 ▼ */
+    position: absolute; 
+    
+    /* 位置の調整 (ヘッダー内の右下あたりに来るように設定) */
+    top: 80px;       /* 上からの位置（数字を変えて微調整OK） */
+    right: 180px;     /* 右からの位置 */
+    
+    /* 見た目の設定 */
+    font-size: 30px; 
     font-weight: 900;
     color: #fff;
-    text-shadow: 0 0 10px rgba(0,0,0,0.5);
-    margin-top: 5px;
-    font-family: 'Courier New', Courier, monospace; /* デジタル時計っぽく */
+    text-shadow: 0 0 10px rgba(0,0,0,0.8);
+    font-family: 'Courier New', Courier, monospace;
     transition: color 0.3s;
+    
+    z-index: 100;    /* 他の文字より手前に */
 }
 
 /* 残り時間が少ない時（JSでクラスをつけます） */
@@ -1910,8 +1919,19 @@ window.startOnlineGame = function() {
         return;
     }
     
-    // 英数字以外を除去
-    roomId = "rooms/" + inputRoom.replace(/[^a-zA-Z0-9]/g, '');
+    // 英数字以外を除去した文字列を作る
+    const sanitizedRoomId = inputRoom.replace(/[^a-zA-Z0-9]/g, '');
+
+    // ★修正1：文字が全部消えてしまったら警告を出して止める
+    if (!sanitizedRoomId) {
+        alert("合言葉は「半角英数字」で入力してください！\n（日本語や記号は使えません）");
+        return;
+    }
+
+    // ★修正2：保存場所を 'rooms_v2' に変更して、心機一転させる
+    // (以前の rooms/ に残っているバグったデータを無視するため)
+    roomId = "rooms_v2/" + sanitizedRoomId;
+    
     const myName = document.getElementById('username-input').value.trim() || "PLAYER";
 
     // 部屋を見に行く
@@ -2166,6 +2186,7 @@ window.quitGame = quitGame;
 window.backToTitle = backToTitle;
 window.toggleEmoteMenu = toggleEmoteMenu;
 window.sendEmote = sendEmote;
+
 
 </script>
 </body>
