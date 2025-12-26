@@ -598,6 +598,29 @@ footer {
     box-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
 }
 
+/* ▼▼▼ 追加：タイマーのデザイン ▼▼▼ */
+#timer-display {
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+    margin-top: 5px;
+    font-family: 'Courier New', Courier, monospace; /* デジタル時計っぽく */
+    transition: color 0.3s;
+}
+
+/* 残り時間が少ない時（JSでクラスをつけます） */
+#timer-display.danger {
+    color: #ff3333;
+    text-shadow: 0 0 15px #ff0000;
+    animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
     </style>
 </head>
 <body>
@@ -646,6 +669,8 @@ footer {
 
     <div id="card-info"></div>
     <div id="phase-badge">PICK CARD</div>
+
+    <div id="timer-display">30</div>
     </header>
 
 <div id="game-area">
@@ -721,8 +746,8 @@ footer {
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
   
   // ▼▼▼ これを追加！データベースを使うための部品 ▼▼▼
-  import { getDatabase, ref, set, onValue, update, remove, get, child } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, update, remove, get, child, onDisconnect } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -791,6 +816,11 @@ let state = {
     isCpuThinking: false,
     emotes: [],
     damageEffects: []
+    
+    /* ▼▼▼ 追加：タイマーとエモート管理 ▼▼▼ */
+    timeLeft: 30,
+    timerInterval: null,
+    lastEmoteTime: 0
 
 };
 
@@ -842,6 +872,9 @@ function startGame(mode) {
     showToast("GAME START!");
     resizeCanvas();
     gameLoop();
+    resetTimer(); // ★追加
+
+
 }
 
 function initBoardUnits() {
@@ -1244,14 +1277,20 @@ function handleInput(x, y) {
                 }
                 // ▲▲▲ 追加ここまで ▲▲▲
 
+
                 state.tempRotationStart = null;
                 state.validDirections = [];
                 state.phase = 'DEFENDER_MOVE';
+                
                 updateTurnVisuals();
                 showToast("移動フェーズ");
+
+                /* ▼▼▼ 追加：防御フェーズになったらタイマーをリセット ▼▼▼ */
+                resetTimer();
                 
                 if (state.gameMode === 'PvE') triggerCpuAction();
-            } else {
+            }
+else {
                 // キャンセル
                 state.tempRotationStart = clickedHex;
                 calcValidDirections(clickedHex);
@@ -1403,11 +1442,15 @@ function nextTurn() {
     updateTurnVisuals();
     showToast(`${state.turnPlayer.name}'s TURN`);
 
+    /* ▼▼▼ 追加：ターン開始時にタイマー始動 ▼▼▼ */
+    resetTimer();
+
     // CPUターン開始
     if (state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
         triggerCpuAction();
     }
 }
+
 
 // ユーティリティ
 function calcValidDirections(startHex) {
@@ -1720,9 +1763,18 @@ function showResult(winnerName) {
 }
 
 function backToTitle() {
-    // リザルト画面を隠す
+    // ▼▼▼ 追加: オンラインモードだった場合、Firebaseの部屋データを消す ▼▼▼
+    if (state.gameMode === 'ONLINE' && roomId) {
+        remove(ref(db, roomId))
+            .then(() => console.log("部屋データを削除しました"))
+            .catch((e) => console.error("削除エラー:", e));
+        
+        roomId = null; // IDをリセット
+    }
+
     const resScreen = document.getElementById('result-screen');
     resScreen.classList.remove('show');
+
     setTimeout(() => resScreen.style.display = 'none', 500);
 
     // ゲーム内要素のクリア（念のため）
@@ -1767,10 +1819,29 @@ function drawEmotes() {
 
 // 2. 新しいエモート表示処理
 function sendEmote(emoji, forceOwnerId = null) {
+    /* ▼▼▼ 追加：3秒のクールダウン（連打防止） ▼▼▼ */
+    const now = Date.now();
+    // 相手からの受信(forceOwnerIdあり)の場合はクールダウン無視
+    if (!forceOwnerId && now - state.lastEmoteTime < 3000) { 
+        showToast("少々お待ちください...");
+        return; 
+    }
+    if (!forceOwnerId) state.lastEmoteTime = now;
+    /* ▲▲▲ 追加ここまで ▲▲▲ */
+
     // メニューを閉じる
     document.getElementById('emote-menu').classList.remove('show');
 
+    // ▼▼▼ 追加：オンラインなら相手に送信 ▼▼▼
+    // forceOwnerIdがない＝自分が押したボタン という意味
+    if (state.gameMode === 'ONLINE' && !forceOwnerId) {
+        sendAction('EMOTE', { value: emoji });
+    }
+    // ▲▲▲ 追加ここまで ▲▲▲
+
     let ownerId;
+    // ... (以下そのまま) ...
+
     if (forceOwnerId) {
         ownerId = forceOwnerId;
     } else {
@@ -1826,20 +1897,20 @@ function sendEmote(emoji, forceOwnerId = null) {
     anim.onfinish = () => el.remove();
 }
 
-/* ▼▼▼ オンライン対戦機能 (Firebase版) ▼▼▼ */
+/* ▼▼▼ オンライン対戦機能 (Firebase版・ランダム陣営) ▼▼▼ */
 
 let roomId = null;
 let myPlayerId = 0; // 1=P1(青), 2=P2(赤)
 
 // オンラインゲーム開始ボタン
-window.startOnlineGame = function() { // type="module"なのでwindowに紐付け
+window.startOnlineGame = function() { 
     const inputRoom = document.getElementById('room-input').value.trim();
     if (!inputRoom) {
         alert("合言葉を入力してください");
         return;
     }
     
-    // 英数字以外を除去して安全にする
+    // 英数字以外を除去
     roomId = "rooms/" + inputRoom.replace(/[^a-zA-Z0-9]/g, '');
     const myName = document.getElementById('username-input').value.trim() || "PLAYER";
 
@@ -1847,13 +1918,17 @@ window.startOnlineGame = function() { // type="module"なのでwindowに紐付�
     const roomRef = ref(db, roomId);
     get(roomRef).then((snapshot) => {
         if (!snapshot.exists()) {
-            // 部屋がない → 自分がホスト(P1)で作る
+            // 部屋がない → 自分がホスト（ランダムで席を決める）
             createRoom(myName);
         } else {
             const data = snapshot.val();
-            if (!data.p2) {
-                // P2が空いている → 参加する
-                joinRoom(myName);
+            // 空いている席を探す
+            if (!data.p1) {
+                // P1(青)が空いている → P1になる
+                joinRoom(myName, 1);
+            } else if (!data.p2) {
+                // P2(赤)が空いている → P2になる
+                joinRoom(myName, 2);
             } else {
                 alert("その部屋は満員です！別の合言葉を使ってください。");
             }
@@ -1864,41 +1939,60 @@ window.startOnlineGame = function() { // type="module"なのでwindowに紐付�
     });
 };
 
-// 部屋を作る(P1)
+// 部屋を作る(ホスト)
 function createRoom(name) {
-    myPlayerId = 1;
-    // 初期データをセット
-    set(ref(db, roomId), {
-        p1: name,
-        p2: null,
+    myPlayerId = Math.random() < 0.5 ? 1 : 2;
+
+    const roomData = {
+        p1: myPlayerId === 1 ? name : null,
+        p2: myPlayerId === 2 ? name : null,
         status: "waiting",
         turn: 1,
         lastUpdate: Date.now()
-    });
-    
+    };
+
+    const roomRef = ref(db, roomId);
+    set(roomRef, roomData);
+
+    // ▼▼▼ 追加：もし落ちたら部屋を消す予約 ▼▼▼
+    onDisconnect(roomRef).remove(); 
+    // ▲▲▲ 追加ここまで ▲▲▲
+
     waitForOpponent();
 }
 
-// 部屋に参加する(P2)
-function joinRoom(name) {
-    myPlayerId = 2;
-    // 参加を書き込む
-    update(ref(db, roomId), {
-        p2: name,
-        status: "ready"
-    });
+// 部屋に参加する(ゲスト)
+function joinRoom(name, joinAsId) {
+    myPlayerId = joinAsId;
     
-    startGameOnline(name);
+    const updates = {};
+    updates[`p${myPlayerId}`] = name;
+    updates["status"] = "ready";
+    
+    const roomRef = ref(db, roomId);
+    update(roomRef, updates);
+
+    // ▼▼▼ 追加：もし落ちたら部屋を消す予約 ▼▼▼
+    onDisconnect(roomRef).remove();
+    // ▲▲▲ 追加ここまで ▲▲▲
+    
+    const opponentId = myPlayerId === 1 ? 2 : 1;
+    get(ref(db, roomId + `/p${opponentId}`)).then((snap) => {
+        startGameOnline(snap.val());
+    });
 }
+
 
 // 相手待ち画面
 function waitForOpponent() {
     document.getElementById('title-screen').style.display = 'none';
     showToast("対戦相手を待っています...");
     
-    // 相手が入ってきたか監視
-    const p2Ref = ref(db, roomId + "/p2");
-    onValue(p2Ref, (snapshot) => {
+    // 自分がP1ならP2を待つ、自分がP2ならP1を待つ
+    const waitTargetId = myPlayerId === 1 ? 2 : 1;
+    const waitRef = ref(db, roomId + `/p${waitTargetId}`);
+    
+    onValue(waitRef, (snapshot) => {
         if (snapshot.exists()) {
             showToast("相手が参加しました！");
             startGameOnline(snapshot.val()); // ゲーム開始へ
@@ -1908,7 +2002,6 @@ function waitForOpponent() {
 
 // ゲーム開始処理（共通）
 function startGameOnline(opponentName) {
-    // 共通のゲーム開始処理
     state.gameMode = 'ONLINE';
     state.turn = 1;
     state.turnPlayer = P1;
@@ -1916,18 +2009,18 @@ function startGameOnline(opponentName) {
     state.winner = null;
     state.isCpuThinking = false;
     
-    // 名前設定
+    const myName = document.getElementById('username-input').value || "YOU";
+    const oppName = opponentName || "OPPONENT";
+
+    // 名前ラベルの設定（自分がどっちになっても正しく表示する）
     if (myPlayerId === 1) {
-        // 自分P1, 相手P2
-        document.getElementById('p1-label').innerText = document.getElementById('username-input').value || "YOU";
-        document.getElementById('p2-label').innerText = opponentName || "OPPONENT";
+        // 自分＝青(P1)
+        document.getElementById('p1-label').innerText = myName;
+        document.getElementById('p2-label').innerText = oppName;
     } else {
-        // 自分P2, 相手P1
-        // P1の名前を取得する必要があるが、一旦簡易的に
-        get(ref(db, roomId + "/p1")).then((snap) => {
-             document.getElementById('p2-label').innerText = document.getElementById('username-input').value || "YOU";
-             document.getElementById('p1-label').innerText = snap.val() || "OPPONENT";
-        });
+        // 自分＝赤(P2)
+        document.getElementById('p1-label').innerText = oppName;
+        document.getElementById('p2-label').innerText = myName;
     }
 
     document.getElementById('title-screen').style.display = 'none';
@@ -1935,14 +2028,14 @@ function startGameOnline(opponentName) {
     resizeCanvas();
     updateTurnVisuals();
     gameLoop();
+    resetTimer(); // ★追加
+
     
-    // ★ここから通信監視スタート
     startOnlineListener();
 }
 
 // 相手の操作を受信して反映する
 function startOnlineListener() {
-    // "action" というデータが変わったら検知
     onValue(ref(db, roomId + "/action"), (snapshot) => {
         const action = snapshot.val();
         if (!action) return;
@@ -1952,23 +2045,106 @@ function startOnlineListener() {
 
         // 相手の操作を再現
         if (action.type === 'SELECT_CARD') {
-            // カード選択の同期
-            uiSelectCard(action.value, true); // true=操作制限無視フラグ(既存関数に修正が必要かも)
+            uiSelectCard(action.value, true); 
         } else if (action.type === 'ROTATE') {
-            // 回転の同期
             state.hiddenRotation = { indices: action.indices };
             state.phase = 'DEFENDER_MOVE';
             updateTurnVisuals();
             showToast("相手が回転を決めました");
         } else if (action.type === 'MOVE') {
-            // 移動の同期
             state.defenderMoves = action.moves;
-            startTurnResolution(); // ターン解決へ
+            startTurnResolution(); 
+        } 
+        /* ▼▼▼ 追加：エモートの受信 ▼▼▼ */
+        else if (action.type === 'EMOTE') {
+            // 相手(action.sender)としてエモートを表示
+            sendEmote(action.value, action.sender);
         }
+        /* ▲▲▲ 追加ここまで ▲▲▲ */
     });
 }
 
-// 自分の操作を送信する関数（既存のコードから呼び出す）
+
+/* ▼▼▼ タイマー機能 ▼▼▼ */
+
+// タイマーをリセットして開始（フェーズが変わるたびに呼ぶ）
+function resetTimer() {
+    clearInterval(state.timerInterval);
+    state.timeLeft = 30; // 制限時間（秒）
+    updateTimerDisplay();
+
+    // 1秒ごとに減らす
+    state.timerInterval = setInterval(() => {
+        state.timeLeft--;
+        updateTimerDisplay();
+
+        if (state.timeLeft <= 0) {
+            clearInterval(state.timerInterval);
+            handleTimeout(); // 時間切れの処理
+        }
+    }, 1000);
+}
+
+// 画面表示の更新
+function updateTimerDisplay() {
+    const el = document.getElementById('timer-display');
+    if (!el) return;
+    el.innerText = state.timeLeft;
+    
+    // 残り10秒を切ったら赤くする
+    if (state.timeLeft <= 10) {
+        el.classList.add('danger');
+    } else {
+        el.classList.remove('danger');
+    }
+}
+
+// 時間切れになった時の自動操作
+function handleTimeout() {
+    // オンラインの場合、自分の操作手番でなければ勝手に動かない
+    if (state.gameMode === 'ONLINE') {
+        const isMyTurn = (state.phase === 'DEFENDER_MOVE') 
+            ? (state.turnPlayer.id !== myPlayerId) // 防御フェーズなら防御側（＝ターンプレイヤーじゃない方）
+            : (state.turnPlayer.id === myPlayerId); // 攻撃フェーズなら攻撃側
+
+        if (!isMyTurn) return; // 相手のタイムアウトなら何もしない（相手が送信してくるのを待つ）
+    }
+    
+    // CPU思考中なら無視
+    if (state.isCpuThinking) return;
+
+    showToast("TIME UP!");
+
+    // フェーズごとの強制操作
+    if (state.phase === 'SELECT_CARD') {
+        // 勝手に一番左のカードを選ぶ
+        uiSelectCard(2);
+    } 
+    else if (state.phase === 'SELECT_ROTATION') {
+        // 回転可能な方向があれば、最初に見つかったものに決定する
+        // なければキャンセルしてカード選択に戻る（が、無限ループ防ぐため適当に処理）
+        if (state.validDirections.length > 0) {
+            // 強制決定
+            const valid = state.validDirections[0];
+            state.hiddenRotation = { indices: valid.indices };
+            
+            if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: valid.indices });
+            
+            state.phase = 'DEFENDER_MOVE';
+            updateTurnVisuals(); // ここでタイマーもリセットされる
+        } else {
+            // 万が一置けなかったらカード選択に戻す
+            state.phase = 'SELECT_CARD';
+            resetTimer(); 
+        }
+    } 
+    else if (state.phase === 'DEFENDER_MOVE') {
+        // 移動せずに確定する
+        uiConfirm();
+    }
+}
+
+// 自分の操作を送信する関数
 function sendAction(type, data) {
     if (state.gameMode !== 'ONLINE') return;
     
@@ -1981,6 +2157,7 @@ function sendAction(type, data) {
 }
 
 /* ▲▲▲ オンライン機能ここまで ▲▲▲ */
+
 /* ▼▼▼ 追加：HTMLのボタンから関数を呼べるようにする設定 ▼▼▼ */
 window.startGame = startGame;
 window.uiSelectCard = uiSelectCard;
@@ -1989,7 +2166,6 @@ window.quitGame = quitGame;
 window.backToTitle = backToTitle;
 window.toggleEmoteMenu = toggleEmoteMenu;
 window.sendEmote = sendEmote;
-window.startOnlineGame = startOnlineGame; // これも忘れずに
 
 </script>
 </body>
