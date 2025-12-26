@@ -269,6 +269,21 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
     </div>
 </div>
 
+    <div id="waiting-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2>WAITING...</h2>
+            <p style="font-size:14px; margin-bottom:5px;">合言葉</p>
+            <div id="display-room-id" style="font-size:24px; font-weight:900; color:#00ccff; margin-bottom:20px; letter-spacing:2px;">
+                </div>
+            
+            <div class="wooden-btn small" onclick="shareInviteLink()">
+                <span class="btn-text" style="font-size:18px;">INVITE</span>
+            </div>
+            
+            <button class="text-btn" onclick="cancelWait()">CANCEL</button>
+        </div>
+    </div>
+
 <header>
     <div class="score-board">
         <div class="player-badge p1">
@@ -1627,42 +1642,71 @@ function joinRoom(name, joinAsId) {
     });
 }
 
-// 相手待ち画面
+// 相手待ち画面を表示
 function waitForOpponent() {
-    document.getElementById('title-screen').style.display = 'none';
     
-    // ▼▼▼ 修正：URL生成とコピー機能 ▼▼▼
-    
-    // 現在の合言葉を取得（入力欄からではなく、roomIdからv2/などを除いたものを復元しても良いが、入力欄が手っ取り早い）
+    // 2. 合言葉を表示
     const inputVal = document.getElementById('room-input').value;
-    
-    // 招待用URLを作る (今のURL + ?room=合言葉)
-    // 注意：すでに?room=がついている場合に対応するため、一旦消してから付け直す
-    const baseUrl = window.location.href.split('?')[0];
-    const inviteUrl = `${baseUrl}?room=${inputVal}`;
+    document.getElementById('display-room-id').innerText = inputVal;
 
-    // クリップボードにコピーする
-    navigator.clipboard.writeText(inviteUrl).then(() => {
-        showToast("招待URLをコピーしました！友達に送ろう！");
-    }).catch(err => {
-        // コピーに失敗した場合（ブラウザのセキュリティ制限など）
-        console.error('コピー失敗:', err);
-        showToast("対戦相手を待っています...");
-    });
+    // 3. 待機モーダルを表示
+    document.getElementById('secret-modal').classList.remove('active'); // 入力画面は消す
+    document.getElementById('waiting-modal').classList.add('active'); // 待機画面を出す
 
-    // ▲▲▲ 修正ここまで ▲▲▲
-    
-    // 自分がP1ならP2を待つ、自分がP2ならP1を待つ
+    // 4. 相手の参加を監視
     const waitTargetId = myPlayerId === 1 ? 2 : 1;
     const waitRef = ref(db, roomId + `/p${waitTargetId}`);
     
     onValue(waitRef, (snapshot) => {
         if (snapshot.exists()) {
+            // 相手が来たらモーダルを消して開始
+            document.getElementById('waiting-modal').classList.remove('active');
             showToast("相手が参加しました！");
-            startGameOnline(snapshot.val()); // ゲーム開始へ
+            startGameOnline(snapshot.val()); 
         }
     });
 }
+
+// ▼▼▼ 新規：共有ボタンの処理（スマホの共有メニューが開きます） ▼▼▼
+window.shareInviteLink = async function() {
+    const inputVal = document.getElementById('room-input').value;
+    const baseUrl = window.location.href.split('?')[0];
+    const inviteUrl = `${baseUrl}?room=${inputVal}`;
+    
+    const shareData = {
+        title: 'HONEY NOW',
+        text: `合言葉「${inputVal}」で対戦しよう！`,
+        url: inviteUrl,
+    };
+
+    // ブラウザが共有機能に対応しているかチェック
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData); // スマホの共有メニューを開く
+        } catch (err) {
+            // キャンセルされた場合は何もしない
+        }
+    } else {
+        // PCなど共有メニューが出ない場合は、URLをコピーする
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+            showToast("URLをコピーしました！");
+        }).catch(() => {
+            showToast("手動でコピーしてください");
+            prompt("このURLをコピーして送ってね", inviteUrl);
+        });
+    }
+};
+
+// ▼▼▼ 新規：待機キャンセル処理 ▼▼▼
+window.cancelWait = function() {
+    // 部屋を削除して戻る
+    if (roomId) {
+        remove(ref(db, roomId));
+        roomId = null;
+    }
+    document.getElementById('waiting-modal').classList.remove('active');
+    document.getElementById('title-screen').style.display = 'flex';
+};
 
 // ゲーム開始処理（共通）
 function startGameOnline(opponentName) {
