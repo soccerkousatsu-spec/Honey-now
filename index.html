@@ -1388,19 +1388,20 @@ function backToTitle() {
     bgm.pause();
     bgm.currentTime = 0;
 
-    // ▼▼▼ 追加：モーダルが開いていたら強制的に閉じる ▼▼▼
     document.getElementById('settings-modal').classList.remove('active');
     document.getElementById('secret-modal').classList.remove('active');
-    // ▲▲▲ 追加ここまで ▲▲▲
 
-    // オンラインモードだった場合、Firebaseの部屋データを消す
+    // ▼▼▼ 修正後：安全な書き方 ▼▼▼
     if (state.gameMode === 'ONLINE' && roomId) {
-        remove(ref(db, roomId))
+        const targetRoom = roomId; // 1. 消す予定の部屋IDをメモしておく
+        roomId = null;             // 2. 先に「自分はもう部屋にいない」ことにする（これで監視に引っかからない）
+        
+        // 3. メモしておいた部屋IDを使って、裏でこっそり削除する
+        remove(ref(db, targetRoom))
             .then(() => console.log("部屋データを削除しました"))
             .catch((e) => console.error("削除エラー:", e));
-        
-        roomId = null; // IDをリセット
     }
+    // ▲▲▲ 修正後ここまで ▲▲▲
 
     const resScreen = document.getElementById('result-screen');
     resScreen.classList.remove('show');
@@ -1723,7 +1724,19 @@ function startOnlineListener() {
             // 相手(action.sender)としてエモートを表示
             sendEmote(action.value, action.sender);
         }
-        /* ▲▲▲ 追加ここまで ▲▲▲ */
+});
+onValue(ref(db, roomId), (snapshot) => {
+    // データがnull（存在しない）になったら
+    if (!snapshot.exists()) {
+        // まだ自分がオンライン対戦中のつもりなら
+        if (state.gameMode === 'ONLINE') {
+            alert("対戦相手が退出しました\nタイトルに戻ります");
+            
+            // 重要：無限ループしないように、先にroomIdを空にしてから戻る
+            roomId = null; 
+            backToTitle();
+        }
+    }
     });
 }
 
