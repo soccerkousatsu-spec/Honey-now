@@ -791,7 +791,7 @@ const BOARD_RADIUS = 3;
 /* ▼▼▼ 追加：BGMの設定 ▼▼▼ */
 const bgm = new Audio('bgm.mp3'); // ファイル名と合わせる
 bgm.loop = true;   // ループ再生する
-bgm.volume = 0.3;  // 音量 (0.0 〜 1.0) 
+bgm.volume = 0.1;  // 音量 (0.0 〜 1.0) 
 
 const COLORS = {
 
@@ -1772,6 +1772,10 @@ function showResult(winnerName) {
 }
 
 function backToTitle() {
+
+    bgm.pause();
+    bgm.currentTime = 0;
+
     // ▼▼▼ 追加: オンラインモードだった場合、Firebaseの部屋データを消す ▼▼▼
     if (state.gameMode === 'ONLINE' && roomId) {
         remove(ref(db, roomId))
@@ -2208,6 +2212,26 @@ window.quitGame = quitGame;
 window.backToTitle = backToTitle;
 window.toggleEmoteMenu = toggleEmoteMenu;
 window.sendEmote = sendEmote;
+
+// ▼▼▼ 追加：画面から離れたらBGMを止める処理 ▼▼▼
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // 画面が見えなくなったら（タブ切り替えやホームに戻った時）
+        bgm.pause();
+    } else {
+        // 画面に戻ってきた時
+        // 「タイトル画面ではない」かつ「リザルト画面ではない」時だけ再開する
+        const isTitleHidden = document.getElementById('title-screen').style.display === 'none';
+        const isResultHidden = document.getElementById('result-screen').style.display === 'none';
+        
+        // ゲーム中ならBGM再開
+        if (isTitleHidden && isResultHidden) {
+            bgm.play().catch(e => console.log("BGM再開エラー:", e));
+        }
+    }
+});
+// ▲▲▲ 追加ここまで ▲▲▲
+
 
 // ▼▼▼ 追加：URLから合言葉を読み取る処理 ▼▼▼
 window.addEventListener('DOMContentLoaded', () => {
