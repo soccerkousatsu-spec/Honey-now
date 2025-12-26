@@ -1191,7 +1191,7 @@ function isPointInTriangle(p, a, b, c) {
 function resizeCanvas() {
     const c = document.getElementById('game-area');
     canvas.width = c.clientWidth; canvas.height = c.clientHeight;
-    HEX_SIZE = Math.min((canvas.width*0.9)/(7*Math.sqrt(3)), (canvas.height*0.9)/(7*1.5));
+    HEX_SIZE = Math.min((canvas.width*0.95)/(7*Math.sqrt(3)), (canvas.height*0.95)/(7*1.5));
 }
 function showToast(msg) {
     const t = document.getElementById('toast');
