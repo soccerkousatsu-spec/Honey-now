@@ -648,9 +648,6 @@ footer {
     <div id="phase-badge">PICK CARD</div>
     </header>
 
-</header>
-
-
 <div id="game-area">
     <canvas id="board"></canvas>
     <div id="toast"></div>
@@ -734,6 +731,11 @@ footer {
   const firebaseConfig = {
     apiKey: "AIzaSyDswxDswxU_DU-DdhYI8KsANtVeYVP6NN4",
     authDomain: "honeynow-7fe79.firebaseapp.com",
+    
+    /* ▼▼▼ これを追加！ ▼▼▼ */
+    databaseURL: "https://honeynow-7fe79-default-rtdb.firebaseio.com",
+    /* ▲▲▲ 追加ここまで（最後のカンマを忘れずに！） ▲▲▲ */
+    
     projectId: "honeynow-7fe79",
     storageBucket: "honeynow-7fe79.firebasestorage.app",
     messagingSenderId: "745229921816",
