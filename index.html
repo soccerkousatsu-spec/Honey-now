@@ -6,629 +6,206 @@
 <title>HONEY NOW</title>
 
     <style>
-        /* 全体レイアウト */
+/* 全体レイアウト */
 body {
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     background-color: #050505;
     color: #fff;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    display: flex;
+    display: flex; flex-direction: column;
+    position: fixed; width: 100%; height: 100svh;
+    touch-action: none; -webkit-text-size-adjust: 100%;
+    overflow: hidden; transition: background-color 0.5s ease;
+}
+
+/* ▼▼▼ 修正：タイトル画面のレイアウト（ここがバグの原因でした） ▼▼▼ */
+#title-screen {
+    position: absolute; /* 画面全体に重ねる */
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    display: flex; /* 中身を中央揃えにする */
     flex-direction: column;
-    
-    /* ▼▼▼ 修正: ガタつき防止の固定設定 ▼▼▼ */
-    position: fixed;     /* 画面を強制的に固定 */
-    width: 100%;         /* 幅を固定 */
-    height: 100svh;      /* 「アドレスバーが出ている時の高さ」で固定 */
-    /* ▲▲▲ 修正ここまで ▲▲▲ */
-    
-    touch-action: none;
-    -webkit-text-size-adjust: 100%;
-    
-    overflow: hidden;
-    transition: background-color 0.5s ease;
-}
-
-        /* タイトル画面オーバーレイ */
-        #title-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(5, 5, 5, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            backdrop-filter: blur(10px);
-        }
-        .title-text {
-            font-size: 40px;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 10px #00ccff, 0 0 20px #ff3366;
-            margin-bottom: 50px;
-            letter-spacing: 2px;
-            text-align: center;
-        }
-        .mode-btn {
-            background: linear-gradient(90deg, #00ccff, #0088cc);
-            color: #fff;
-            border: 2px solid #fff;
-            padding: 20px 40px;
-            margin: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            width: 80%;
-            max-width: 300px;
-            box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
-            transition: transform 0.1s, box-shadow 0.2s;
-            text-transform: uppercase;
-        }
-        .mode-btn:active { transform: scale(0.95); }
-        .mode-btn.cpu {
-            background: linear-gradient(90deg, #ff3366, #cc0033);
-            box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
-        }
-
-/* ヘッダー */
-header {
-    padding: 20px;
-    padding-top: max(40px, env(safe-area-inset-top)); 
-    background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
-    border-bottom: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    pointer-events: none;
-}
-
-/* ▼▼▼ ヘッダー内のレイアウト用 (新規追加) ▼▼▼ */
-.score-board {
-    display: flex;
-    justify-content: space-between; /* 左右に配置 */
-    align-items: center;    /* 上下中央揃え */
-    width: 100%;            /* 横幅いっぱい */
-    padding: 0 20px;        /* 左右に少し余白 */
-    box-sizing: border-box; /* パディングを含めた幅計算 */
-}
-
-.player-label {
-    font-size: 14px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    width: 80px; /* 幅を固定して中央がズレないようにする */
-    text-align: center;
-    opacity: 0.8;
-}
-
-/* プレイヤーごとの色分け */
-#p1-label {
-    color: #00ccff; /* 青 */
-    text-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
-    text-align: left; /* 左寄せ */
-}
-
-#p2-label {
-    color: #ff3366; /* 赤 */
-    text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
-    text-align: right; /* 右寄せ */
-}
-
-/* 既存のターン表示の微調整（余白など） */
-#turn-indicator {
-    /* 既存のスタイルはそのまま維持しつつ、マージンだけ調整 */
-    margin: 0 10px;
-}
-
-/* ▼▼▼ ここが復活させるポイント ▼▼▼ */
-#card-info {
-
-    position: relative;
-    left: 5px; 
-
-    color: #ffd700;
-    height: 40px;
-    display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 1px;
-}
-
-#card-info svg {
-    height: 100%;       
-    width: auto;        
-    fill: currentColor; 
-    filter: none; /* 光らせない設定 */
-}
-
-
-#turn-indicator {
-    font-size: 40px;
-    font-weight: 900;
-    text-shadow: 0 0 20px currentColor;
-    letter-spacing: 4px;
-    line-height: 1;
-}
-
-#phase-badge {
-    /* ▼▼▼ 追加: 左にずらす設定 ▼▼▼ */
-    position: relative;
-    left: 3px;       /* 上と同じ数字にすると揃います */
-    /* ▲▲▲ 追加ここまで ▲▲▲ */
-
-    height: 24px;
-    line-height: 24px;
-    margin-bottom: 5px;
-
-    background: transparent;
-    padding: 0;
-    font-size: 16px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 8px;
-    opacity: 0.8;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     
-    /* 念のため空でも表示領域を維持させる */
-    display: block; 
-    width: 100%;
-    text-align: center;
+    background: none; /* 背景色は消す（画像レイヤーを使うため） */
+    z-index: 200; /* ゲーム画面より手前に */
 }
 
-        /* ゲームエリア */
-        #game-area {
-            flex: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-
-canvas {
-    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-    
-
-    position: relative;
-    top: -10px; 
-}
-
-/* フッター */
-footer {
-    padding: 20px;
-    padding-bottom: max(50px, env(safe-area-inset-bottom));
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    display: flex;
-    flex-direction: column;
-    /* gap: 15px;  ← 削除（または 0 に変更） */
-    gap: 0;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-/* 新規追加：操作パネルの高さを強制的に固定する */
-#action-area {
-    width: 100%;
-    height: 80px; /* ここが重要！ボタンより少し大きいサイズで固定 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* 念のためカードパネルも幅いっぱい使うように調整 */
-#card-panel {
-    width: 100%;
-    /* display: flex; はJSで制御されるのでそのままでOK */
-}
-
-
-        #card-panel {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        .card {
-            background: linear-gradient(145deg, #2a2a2a, #333);
-            border: 2px solid #555;
-            color: #aaa;
-            padding: 5px 0; /* 余白を少し詰める */
-            width: 30%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: all 0.2s;
-        }
-        /* SVGアイコンの設定 */
-.card svg {
-    height: 28px;
-    width: auto;
-    fill: currentColor;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-    max-width: 95%;
-    
-    /* ▼▼▼ 追加: これで右にずれます ▼▼▼ */
-    position: relative;
-    left: 5px;   /* 数字を増やすともっと右に行きます */
-}
-
-
-        .card.selected {
-            border-color: #ffd700;
-            background: linear-gradient(145deg, #ffd700, #ffaa00);
-            color: #000;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px rgba(255, 215, 0, 0.3);
-        }
-
-        #main-btn {
-            font-family: 'Arial Black', sans-serif; /* 太いフォントに */
-            font-size: 24px; /* 文字を大きく */
-            width: 100%;
-            /* ...以下既存のスタイル... */
-            padding: 18px;
-            background: linear-gradient(90deg, #ff8c00, #ff0080);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
-            transition: transform 0.1s;
-        }
-        #main-btn:disabled {
-            background: #444;
-            color: #888;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-        #main-btn:active { transform: scale(0.98); }
-
-        #toast {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.9);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 100;
-        }
-
-/* ▼▼▼ リザルト画面のスタイル (新規追加) ▼▼▼ */
-#result-screen {
+/* 背景画像専用のレイヤー */
+.bg-layer {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 300; /* タイトルより手前に */
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    pointer-events: none; /* 非表示時はクリック無効 */
-}
-#result-screen.show {
-    opacity: 1;
-    pointer-events: auto;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: url('bg_title.png');
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
 }
 
-.result-label {
-    font-size: 24px;
-    color: #fff;
-    letter-spacing: 10px;
+/* ロゴの設定 */
+#game-logo {
+    width: 60%; max-width: 450px; height: auto;
     margin-bottom: 10px;
-    opacity: 0.8;
+    animation: floating 3s ease-in-out infinite;
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
+}
+@keyframes floating {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
 }
 
-#winner-name {
-    font-size: 60px;
-    font-weight: 900;
-    text-shadow: 0 0 30px currentColor;
-    letter-spacing: 5px;
-    transform: scale(0.5);
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-#result-screen.show #winner-name {
-    transform: scale(1);
-}
-
-/* ▼▼▼ 中断ボタンのスタイル (新規追加) ▼▼▼ */
-#quit-btn {
+/* 歯車アイコン */
+#gear-btn {
     position: absolute;
-    top: max(10px, env(safe-area-inset-top)); /* スマホのノッチ対策 */
-    left: 10px;
-    z-index: 150; /* ゲーム画面より手前、タイトルより奥 */
-    
-    background: rgba(0, 0, 0, 0.5);
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
-    padding: 5px 15px;
-    font-size: 14px;
-    font-weight: bold;
+    top: max(20px, env(safe-area-inset-top));
+    left: 20px;
+    width: 50px; height: 50px;
     cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s;
+    transition: transform 0.5s;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+    z-index: 10;
 }
-#quit-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+#gear-btn:hover { transform: rotate(180deg); }
+
+/* メニューボタン群 */
+.menu-container {
+    display: flex; flex-direction: column;
+    gap: 20px; width: 100%; align-items: center;
 }
-/* タイトル画面にいる時はボタンを隠す */
-#title-screen[style*="flex"] ~ #quit-btn {
+
+/* 木のボタン */
+.wooden-btn {
+    width: 240px; height: 90px;
+    background-image: url('btn_wood.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer; transition: transform 0.1s;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
+}
+.wooden-btn:active { transform: scale(0.95); }
+
+.wooden-btn .btn-text {
+    font-size: 32px; font-weight: 900; color: #fff;
+    text-shadow: 2px 2px 0 #5d3a1a, -1px -1px 0 #5d3a1a, 0 0 10px rgba(0,0,0,0.5);
+    font-family: 'Arial Black', sans-serif; letter-spacing: 2px;
+    position: relative; top: -2px;
+}
+.wooden-btn.small { position: relative; width: 180px; height: 60px; margin-top: 15px;
+left: 70px;}
+.wooden-btn.small .btn-text { font-size: 24px; }
+
+/* モーダル共通設定 */
+.modal-overlay {
     display: none;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+    justify-content: center; align-items: center; z-index: 300;
 }
+.modal-overlay.active { display: flex; }
 
-/* ▼▼▼ 名前入力欄のスタイル (新規追加) ▼▼▼ */
-#username-input {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #fff;
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
-    color: #fff;
-    font-size: 24px;
-    font-weight: bold;
+.modal-box {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px; border-radius: 20px;
+    width: 80%; max-width: 320px;
     text-align: center;
-    width: 60%;
-    max-width: 250px;
-    outline: none;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    backdrop-filter: blur(5px);
-    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 4px solid #ffd700; color: #333;
+}
+.modal-box h2 {
+    margin: 0 0 20px 0; color: #ff8c00; font-weight: 900;
+    font-size: 28px; letter-spacing: 2px; text-shadow: 2px 2px 0 #fff;
+}
+.modal-box label {
+    display: block; text-align: left; font-weight: bold;
+    margin-top: 15px; font-size: 14px; color: #666;
+}
+.modal-box input[type="text"] {
+    width: 100%; padding: 10px; font-size: 18px;
+    border: 2px solid #ccc; border-radius: 10px; margin-top: 5px;
+    box-sizing: border-box; text-align: center;
+    background: #f9f9f9; color: #333;
+}
+input[type=range] { width: 100%; margin: 10px 0 20px 0; cursor: pointer; }
+
+.close-btn {
+    background: #ff8c00; color: #fff; border: none;
+    padding: 10px 30px; font-size: 18px; border-radius: 30px;
+    font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #cc7000; margin-top: 10px;
+}
+.close-btn:active { transform: translateY(4px); box-shadow: none; }
+.text-btn {
+    background: none; border: none; color: #888;
+    font-weight: bold; margin-top: 15px; cursor: pointer; text-decoration: underline;
 }
 
-#username-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-#username-input:focus {
-    background: rgba(0, 204, 255, 0.2);
-    border-color: #00ccff;
-    box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
-}
-
-/* ▼▼▼ 修正：エモート機能のスタイル ▼▼▼ */
-#emote-container {
-    position: fixed;
-    bottom: 160px;
-    right: 20px;
-    z-index: 150;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    
-    /* ▼▼▼ 追加: 透明な枠がタッチを邪魔しないようにする ▼▼▼ */
-    pointer-events: none; 
-}
-
-#emote-btn {
-    /* ▼▼▼ 追加: ボタンだけはクリックできるように戻す ▼▼▼ */
-    pointer-events: auto; 
-    
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #fff, #ddd);
-    border: none;
-    font-size: 24px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    cursor: pointer;
-    transition: transform 0.1s;
-}
-
-#emote-btn:active { transform: scale(0.9); }
-
-#emote-menu {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-    padding: 10px;
-    border-radius: 15px;
-    display: flex;
-    flex-wrap: wrap; /* 折り返し */
-    width: 140px;
-    gap: 8px;
-    justify-content: center;
-    border: 1px solid rgba(255,255,255,0.2);
-    
-    /* アニメーション用設定 */
-    opacity: 0;
-    transform: scale(0.8) translateY(20px);
+/* --- その他の既存スタイル（ヘッダー、ゲームエリアなど） --- */
+header {
+    padding: 20px; padding-top: max(40px, env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
     pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
-#emote-menu.show {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    pointer-events: auto;
-}
-
-.emote-item {
-    font-size: 28px;
-    cursor: pointer;
-    transition: transform 0.1s;
-    user-select: none;
-}
-.emote-item:hover { transform: scale(1.2); }
-.emote-item:active { transform: scale(0.9); }
-
-/* ▼▼▼ 修正：コンパクト版プレイヤー枠 ▼▼▼ */
-
-/* 1. 親枠の設定（そのまま維持） */
 .score-board {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    height: 60px;
-    padding: 0 10px;
-    box-sizing: border-box;
+    display: flex; justify-content: center; align-items: flex-start;
+    width: 100%; height: 60px; padding: 0 10px; box-sizing: border-box; position: relative;
 }
-
-/* ▼▼▼ 修正：枠線を細くしたコンパクト版 ▼▼▼ */
-
-/* 2. プレイヤー枠 */
 .player-badge {
-    position: absolute;
-    top: 5px;
-    z-index: 100;
-    
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    
-    width: 85px;        /* コンパクト幅 */
-    height: auto;
-    min-height: 40px;
-    
-    align-items: flex-start; 
-    text-align: left;
-    
-    padding: 5px 8px;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.6);
-    
-    /* ▼▼▼ 変更: 枠線を 1px に細くしました ▼▼▼ */
-    border: 1px solid rgba(255, 255, 255, 0.3); 
-    
-    backdrop-filter: blur(4px);
-    transition: all 0.3s;
+    position: absolute; top: 5px; z-index: 100;
+    display: flex; flex-direction: column; justify-content: center;
+    width: 85px; min-height: 40px; align-items: flex-start; text-align: left;
+    padding: 5px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); transition: all 0.3s;
 }
+.player-badge.p1 { left: 0; box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) inset; border-color: rgba(0, 204, 255, 0.4); }
+.player-badge.p2 { right: 0; box-shadow: 0 0 8px rgba(255, 51, 102, 0.2) inset; border-color: rgba(255, 51, 102, 0.4); }
+.badge-name { font-size: 13px; font-weight: 900; letter-spacing: 0.5px; width: 100%; word-break: break-word; line-height: 1.1; }
+.badge-comment { font-size: 9px; color: #ccc; word-break: break-word; line-height: 1.2; opacity: 0.9; }
 
-/* 位置や影の設定（そのまま維持） */
-.player-badge.p1 {
-    left: 0;
-    /* 枠の色も少し細めの印象に合わせて調整（影で色を出す） */
-    box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) inset;
-    border-color: rgba(0, 204, 255, 0.4); /* 青っぽく光らせる */
-}
+#turn-indicator { font-size: 40px; font-weight: 900; text-shadow: 0 0 20px currentColor; letter-spacing: 4px; line-height: 1; margin: 0 10px; }
+#phase-badge { position: relative; left: 3px; height: 24px; line-height: 24px; margin-bottom: 5px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 8px; opacity: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.8); width: 100%; text-align: center; }
+#card-info { position: relative; left: 5px; color: #ffd700; height: 40px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+#card-info svg { height: 100%; width: auto; fill: currentColor; }
 
-.player-badge.p2 {
-    right: 0;
-    box-shadow: 0 0 8px rgba(255, 51, 102, 0.2) inset;
-    border-color: rgba(255, 51, 102, 0.4); /* 赤っぽく光らせる */
-}
+#timer-display { position: absolute; top: 80px; right: 180px; font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.8); font-family: 'Courier New', Courier, monospace; z-index: 100; transition: color 0.3s; }
+#timer-display.danger { color: #ff3333; text-shadow: 0 0 15px #ff0000; animation: pulse 0.5s infinite alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
 
-/* 文字サイズ設定（前回のまま維持） */
-.badge-name {
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-    width: 100%;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.1;
-}
+#game-area { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+canvas { filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); position: relative; top: -10px; }
 
-.badge-comment {
-    font-size: 9px;
-    color: #ccc;
-    font-weight: normal;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.2;
-    max-width: 100%;
-    opacity: 0.9;
-}
+footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 0; border-top: 1px solid rgba(255,255,255,0.1); }
+#action-area { width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; }
+#card-panel { width: 100%; display: flex; justify-content: center; gap: 15px; }
+.card { background: linear-gradient(145deg, #2a2a2a, #333); border: 2px solid #555; color: #aaa; padding: 5px 0; width: 30%; display: flex; justify-content: center; align-items: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.2s; }
+.card svg { height: 28px; width: auto; fill: currentColor; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); max-width: 95%; position: relative; left: 5px; }
+.card.selected { border-color: #ffd700; background: linear-gradient(145deg, #ffd700, #ffaa00); color: #000; transform: translateY(-5px); box-shadow: 0 10px 15px rgba(255, 215, 0, 0.3); }
 
-/* ▼▼▼ 追加：オンライン用ボタンスタイル ▼▼▼ */
-.mode-btn.online {
-    background: linear-gradient(90deg, #00ff99, #00cc88); /* 緑色系 */
-    box-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
-    margin-bottom: 20px; /* 少し離す */
-    border-color: #fff;
-    width: 90%; /* ちょっと大きく目立たせる */
-    max-width: 320px;
-}
+#main-btn { font-family: 'Arial Black', sans-serif; font-size: 24px; width: 100%; padding: 18px; background: linear-gradient(90deg, #ff8c00, #ff0080); color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4); transition: transform 0.1s; }
+#main-btn:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
+#main-btn:active { transform: scale(0.98); }
 
-/* 合言葉の入力欄（名前入力と同じスタイル＋色変え） */
-#room-input {
-    background: rgba(0, 255, 153, 0.1);
-    border: 2px solid #00ff99;
-    border-radius: 15px;
-    padding: 15px;
-    color: #00ff99;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    width: 60%;
-    max-width: 250px;
-    outline: none;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    backdrop-filter: blur(5px);
-    transition: all 0.3s;
-}
-#room-input::placeholder {
-    color: rgba(0, 255, 153, 0.5);
-}
-#room-input:focus {
-    background: rgba(0, 255, 153, 0.2);
-    box-shadow: 0 0 15px rgba(0, 255, 153, 0.5);
-}
+#result-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+#result-screen.show { opacity: 1; pointer-events: auto; }
+.result-label { font-size: 24px; color: #fff; letter-spacing: 10px; margin-bottom: 10px; opacity: 0.8; }
+#winner-name { font-size: 60px; font-weight: 900; text-shadow: 0 0 30px currentColor; letter-spacing: 5px; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+#result-screen.show #winner-name { transform: scale(1); }
+.mode-btn { padding: 15px 40px; font-size: 20px; font-weight: bold; color: #fff; background: transparent; border: 2px solid #fff; border-radius: 50px; cursor: pointer; transition: all 0.2s; }
 
-/* ▼▼▼ 追加：タイマーのデザイン ▼▼▼ */
-#timer-display {
-    /* ▼ 盤面に影響を与えないための魔法の呪文 ▼ */
-    position: absolute; 
-    
-    /* 位置の調整 (ヘッダー内の右下あたりに来るように設定) */
-    top: 80px;       /* 上からの位置（数字を変えて微調整OK） */
-    right: 180px;     /* 右からの位置 */
-    
-    /* 見た目の設定 */
-    font-size: 30px; 
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 10px rgba(0,0,0,0.8);
-    font-family: 'Courier New', Courier, monospace;
-    transition: color 0.3s;
-    
-    z-index: 100;    /* 他の文字より手前に */
-}
+#quit-btn { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 10px; z-index: 150; background: rgba(0, 0, 0, 0.5); color: rgba(255, 255, 255, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 5px 15px; font-size: 14px; font-weight: bold; cursor: pointer; backdrop-filter: blur(4px); transition: all 0.2s; }
+#title-screen[style*="flex"] ~ #quit-btn { display: none; }
 
-/* 残り時間が少ない時（JSでクラスをつけます） */
-#timer-display.danger {
-    color: #ff3333;
-    text-shadow: 0 0 15px #ff0000;
-    animation: pulse 0.5s infinite alternate;
-}
+#toast { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff; padding: 10px 20px; border-radius: 30px; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); z-index: 400; }
 
-@keyframes pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.1); }
-}
+#emote-container { position: fixed; bottom: 160px; right: 20px; z-index: 150; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none; }
+#emote-btn { pointer-events: auto; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #fff, #ddd); border: none; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; transition: transform 0.1s; }
+#emote-btn:active { transform: scale(0.9); }
+#emote-menu { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); padding: 10px; border-radius: 15px; display: flex; flex-wrap: wrap; width: 140px; gap: 8px; justify-content: center; border: 1px solid rgba(255,255,255,0.2); opacity: 0; transform: scale(0.8) translateY(20px); pointer-events: none; transition: all 0.2s; }
+#emote-menu.show { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+.emote-item { font-size: 28px; cursor: pointer; transition: transform 0.1s; user-select: none; }
+.emote-item:hover { transform: scale(1.2); }
 
     </style>
 </head>
@@ -643,21 +220,52 @@ footer {
 <button id="quit-btn" onclick="quitGame()">TOP</button>
 
 <div id="title-screen">
-    <div class="title-text" style="color: #ffd700; text-shadow: 0 0 20px #ffaa00;">
-        HONEY<br>
-        <span style="font-size:40px; color:#fff; letter-spacing: 8px;">NOW</span>
+    <div class="bg-layer"></div>
+
+    <img src="icon_gear.png" id="gear-btn" onclick="openSettings()">
+
+    <img src="logo.png" id="game-logo" alt="HONEY NOW">
+
+    <div class="menu-container">
+        <div class="wooden-btn" onclick="openSecretModal()">
+            <span class="btn-text">ONLINE</span>
+        </div>
+
+        <div class="wooden-btn" onclick="startGame('PvE')">
+            <span class="btn-text">CPU</span>
+        </div>
     </div>
 
-    <input type="text" id="username-input" placeholder="ENTER NAME" maxlength="6">
-    <input type="text" id="comment-input" placeholder="COMMENT" maxlength="30" style="margin-top:10px; font-size:16px;">
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2>SETTINGS</h2>
+            
+            <label>NAME</label>
+            <input type="text" id="username-input" placeholder="PLAYER" maxlength="6">
+            
+            <label>COMMENT</label>
+            <input type="text" id="comment-input" placeholder="..." maxlength="30">
+            
+            <label>BGM VOLUME</label>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.1" oninput="changeVolume(this.value)">
+            
+            <button class="close-btn" onclick="closeSettings()">OK</button>
+        </div>
+    </div>
 
-    <input type="text" id="room-input" placeholder="SECRET WORD" maxlength="10" style="margin-top:20px; border-color:#00ff99; color:#00ff99;">
-
-    <div style="margin-top: 20px; display:flex; flex-direction:column; align-items:center; width:100%;">
-        
-        <button class="mode-btn online" onclick="startOnlineGame()">ONLINE MATCH</button>
-
-        <button class="mode-btn cpu" onclick="startGame('PvE')">Vs CPU</button>
+    <div id="secret-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2>SECRET WORD</h2>
+            <p style="font-size:12px; margin-bottom:10px;">合言葉を入力してね</p>
+            
+            <input type="text" id="room-input" placeholder="ENTER WORD" maxlength="10">
+            
+            <div class="wooden-btn small" onclick="startOnlineGame()">
+                <span class="btn-text">GO!</span>
+            </div>
+            
+            <button class="text-btn" onclick="closeSecretModal()">CANCEL</button>
+        </div>
     </div>
 </div>
 
@@ -1772,11 +1380,15 @@ function showResult(winnerName) {
 }
 
 function backToTitle() {
-
     bgm.pause();
     bgm.currentTime = 0;
 
-    // ▼▼▼ 追加: オンラインモードだった場合、Firebaseの部屋データを消す ▼▼▼
+    // ▼▼▼ 追加：モーダルが開いていたら強制的に閉じる ▼▼▼
+    document.getElementById('settings-modal').classList.remove('active');
+    document.getElementById('secret-modal').classList.remove('active');
+    // ▲▲▲ 追加ここまで ▲▲▲
+
+    // オンラインモードだった場合、Firebaseの部屋データを消す
     if (state.gameMode === 'ONLINE' && roomId) {
         remove(ref(db, roomId))
             .then(() => console.log("部屋データを削除しました"))
@@ -1790,7 +1402,7 @@ function backToTitle() {
 
     setTimeout(() => resScreen.style.display = 'none', 500);
 
-    // ゲーム内要素のクリア（念のため）
+    // ゲーム内要素のクリア
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('turn-indicator').innerText = "";
     document.getElementById('card-info').innerHTML = "";
@@ -2250,6 +1862,49 @@ window.addEventListener('DOMContentLoaded', () => {
         showToast("招待コードを読み込みました！名前を入力してSTART！");
     }
 });
+
+/* --- 新しいUI用の関数 --- */
+
+// 設定画面を開く
+window.openSettings = function() {
+    document.getElementById('settings-modal').classList.add('active');
+    // 入力欄に今の値を入れておく
+    // (既にHTMLのinputに入力された値は保持されていますが、念のため)
+};
+
+// 設定画面を閉じる
+window.closeSettings = function() {
+    document.getElementById('settings-modal').classList.remove('active');
+    // ここで名前などを保存する処理を入れても良いですが、
+    // inputの値はそのまま残るので、startGame時に読み込まれます。
+};
+
+// 音量を変える
+window.changeVolume = function(val) {
+    bgm.volume = parseFloat(val);
+    // プレビューとして再生されていない場合はちょっと鳴らしてもいいかも（お好みで）
+    if(bgm.paused) bgm.play().catch(()=>{});
+};
+
+// 合言葉画面を開く（ONLINEボタン用）
+window.openSecretModal = function() {
+    document.getElementById('secret-modal').classList.add('active');
+    // すぐに入力できるようにフォーカス
+    setTimeout(() => {
+        document.getElementById('room-input').focus();
+    }, 100);
+};
+
+// 合言葉画面を閉じる
+window.closeSecretModal = function() {
+    document.getElementById('secret-modal').classList.remove('active');
+};
+
+// オンライン開始ボタン（合言葉画面のGOボタンから呼ばれる）
+// 既存の window.startOnlineGame を少し修正する必要はありません。
+// HTML側で onclick="startOnlineGame()" としているので、そのまま動きます。
+// ただし、もし接続に成功したらモーダルを閉じたいので、既存の startOnlineGame の成功時処理に追加が必要です。
+
 
 </script>
 </body>
