@@ -16,21 +16,23 @@ body {
     position: fixed; width: 100%; height: 100svh;
     touch-action: none; -webkit-text-size-adjust: 100%;
     overflow: hidden; transition: background-color 0.5s ease;
+
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; 
 }
 
-/* ▼▼▼ 修正：タイトル画面のレイアウト（ここがバグの原因でした） ▼▼▼ */
+/* タイトル画面のレイアウト */
 #title-screen {
-    position: absolute; /* 画面全体に重ねる */
+    position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    
-    display: flex; /* 中身を中央揃えにする */
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    
-    background: none; /* 背景色は消す（画像レイヤーを使うため） */
-    z-index: 200; /* ゲーム画面より手前に */
+    background: none;
+    z-index: 200;
 }
 
 /* 背景画像専用のレイヤー */
@@ -141,7 +143,7 @@ input[type=range] { width: 100%; margin: 10px 0 20px 0; cursor: pointer; }
     font-weight: bold; margin-top: 15px; cursor: pointer; text-decoration: underline;
 }
 
-/* --- その他の既存スタイル（ヘッダー、ゲームエリアなど） --- */
+/* ヘッダー・ゲームエリア */
 header {
     padding: 20px; padding-top: max(40px, env(safe-area-inset-top));
     background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
@@ -179,7 +181,7 @@ canvas { filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); position: relative; t
 footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 0; border-top: 1px solid rgba(255,255,255,0.1); }
 #action-area { width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; }
 #card-panel { width: 100%; display: flex; justify-content: center; gap: 15px; }
-.card { background: linear-gradient(145deg, #2a2a2a, #333); border: 2px solid #555; color: #aaa; padding: 5px 0; width: 30%; display: flex; justify-content: center; align-items: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.2s; }
+.card { background: linear-gradient(145deg, #2a2a2a, #333); border: 2px solid #555; color: #aaa; padding: 5px 0; width: 30%; display: flex; justify-content: center; align-items: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.2s; position: relative; z-index: 1;}
 .card svg { height: 28px; width: auto; fill: currentColor; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); max-width: 95%; position: relative; left: 5px; }
 .card.selected { border-color: #ffd700; background: linear-gradient(145deg, #ffd700, #ffaa00); color: #000; transform: translateY(-5px); box-shadow: 0 10px 15px rgba(255, 215, 0, 0.3); }
 
@@ -206,6 +208,43 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
 #emote-menu.show { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
 .emote-item { font-size: 28px; cursor: pointer; transition: transform 0.1s; user-select: none; }
 .emote-item:hover { transform: scale(1.2); }
+
+/* 開始カットイン */
+#ready-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 500; /* 最前面に */
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+#ready-screen.active { opacity: 1; pointer-events: auto; }
+
+.ready-content {
+    text-align: center; transform: scale(0.8); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#ready-screen.active .ready-content { transform: scale(1); }
+
+.ready-label { font-size: 20px; color: #fff; letter-spacing: 5px; opacity: 0.8; margin-bottom: 10px; }
+#player-role-text {
+    font-size: 60px; font-weight: 900; letter-spacing: 5px; margin-bottom: 20px;
+    text-shadow: 0 0 30px currentColor;
+}
+.vs-text { font-size: 30px; font-weight: bold; color: #888; margin-bottom: 10px; font-style: italic; }
+#enemy-name-display { font-size: 40px; font-weight: bold; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+/* --- ガイド演出用 --- */
+@keyframes attention-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); transform: scale(1); }
+    50% { box-shadow: 0 0 0 15px rgba(255, 215, 0, 0); transform: scale(1.05); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); transform: scale(1); }
+}
+
+/* カードが注目される時のクラス */
+.card.suggest-glow {
+    animation: attention-pulse 1s ease-out infinite;
+    border-color: #ffd700;
+    z-index: 10;
+}
 
     </style>
 </head>
@@ -269,20 +308,28 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
     </div>
 </div>
 
-    <div id="waiting-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2>WAITING...</h2>
-            <p style="font-size:14px; margin-bottom:5px;">合言葉</p>
-            <div id="display-room-id" style="font-size:24px; font-weight:900; color:#00ccff; margin-bottom:20px; letter-spacing:2px;">
-                </div>
-            
-            <div class="wooden-btn small" onclick="shareInviteLink()">
-                <span class="btn-text" style="font-size:18px;">INVITE</span>
-            </div>
-            
-            <button class="text-btn" onclick="cancelWait()">CANCEL</button>
-        </div>
+<div id="ready-screen">
+    <div class="ready-content">
+        <div class="ready-label">YOU ARE</div>
+        <div id="player-role-text">BLUE</div>
+        <div class="vs-text">VS</div>
+        <div id="enemy-name-display">CPU</div>
     </div>
+</div>
+
+<div id="waiting-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h2>WAITING...</h2>
+        <p style="font-size:14px; margin-bottom:5px;">合言葉</p>
+        <div id="display-room-id" style="font-size:24px; font-weight:900; color:#00ccff; margin-bottom:20px; letter-spacing:2px;"></div>
+        
+        <div class="wooden-btn small" onclick="shareInviteLink()">
+            <span class="btn-text" style="font-size:18px;">INVITE</span>
+        </div>
+        
+        <button class="text-btn" onclick="cancelWait()">CANCEL</button>
+    </div>
+</div>
 
 <header>
     <div class="score-board">
@@ -303,7 +350,7 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
     <div id="phase-badge">PICK CARD</div>
 
     <div id="timer-display">30</div>
-    </header>
+</header>
 
 <div id="game-area">
     <canvas id="board"></canvas>
@@ -370,29 +417,18 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
 
         <button id="main-btn" onclick="uiConfirm()" disabled>GO!</button>
     </div>
-    </footer>
+</footer>
 
 <script type="module">
-  // バージョンは安定版の 10.7.1 に統一するのが無難です
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-  
-  // ▼▼▼ これを追加！データベースを使うための部品 ▼▼▼
-import { getDatabase, ref, set, onValue, update, remove, get, child, onDisconnect } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getDatabase, ref, set, push, onValue, update, remove, get, child, onDisconnect, onChildAdded, off } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyDswxDswxU_DU-DdhYI8KsANtVeYVP6NN4",
     authDomain: "honeynow-7fe79.firebaseapp.com",
-    
-    /* ▼▼▼ これを追加！ ▼▼▼ */
     databaseURL: "https://honeynow-7fe79-default-rtdb.firebaseio.com",
-    /* ▲▲▲ 追加ここまで（最後のカンマを忘れずに！） ▲▲▲ */
-    
     projectId: "honeynow-7fe79",
     storageBucket: "honeynow-7fe79.firebasestorage.app",
     messagingSenderId: "745229921816",
@@ -400,24 +436,16 @@ from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     measurementId: "G-RTEVBEYH3M"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-
-  // ▼▼▼ これも追加！データベースの起動 ▼▼▼
   const db = getDatabase(app);
 
-/** * 定数・設定 */
-
 const BOARD_RADIUS = 3;
-
-/* ▼▼▼ 追加：BGMの設定 ▼▼▼ */
-const bgm = new Audio('bgm.mp3'); // ファイル名と合わせる
-bgm.loop = true;   // ループ再生する
-bgm.volume = 0.1;  // 音量 (0.0 〜 1.0) 
+const bgm = new Audio('bgm.mp3');
+bgm.loop = true;
+bgm.volume = 0.1;
 
 const COLORS = {
-
     p1: '#00ccff', p1Bg: '#001a33',
     p2: '#ff3366', p2Bg: '#2a0a12',
     hex: '#222', hexEdge: '#333',
@@ -429,9 +457,8 @@ const P1 = { id: 1, name: 'BLUE', color: COLORS.p1, bg: COLORS.p1Bg };
 const P2 = { id: 2, name: 'RED', color: COLORS.p2, bg: COLORS.p2Bg };
 const DIRECTIONS = [{dq:1,dr:0}, {dq:1,dr:-1}, {dq:0,dr:-1}, {dq:-1,dr:0}, {dq:-1,dr:1}, {dq:0,dr:1}];
 
-/** * ゲーム状態 */
 let state = {
-    gameMode: null, // 'PvP' or 'PvE'
+    gameMode: null,
     turn: 1,
     turnPlayer: P1,
     phase: 'TITLE', 
@@ -448,11 +475,11 @@ let state = {
     isCpuThinking: false,
     emotes: [],
     damageEffects: [],
-    
-    /* ▼▼▼ 追加：タイマーとエモート管理 ▼▼▼ */
     timeLeft: 30,
     timerInterval: null,
-    lastEmoteTime: 0
+    lastEmoteTime: 0,
+    previewRotation: null,
+    showUnitGuidance: false
 
 };
 
@@ -460,7 +487,9 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 let HEX_SIZE = 30;
 
-/* --- 初期化・モード選択 (シンプル版) --- */
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// 1つ目の要注意箇所: startGame
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 function startGame(mode) {
     state.gameMode = mode;
     
@@ -468,45 +497,62 @@ function startGame(mode) {
         bgm.play().catch(e => console.log("BGM再生エラー:", e));
     }
 
-    // 1. 名前とコメントを取得
     const inputName = document.getElementById('username-input').value.trim();
-
     const inputComment = document.getElementById('comment-input').value.trim();
 
-    // デフォルト値の設定
     const p1Name = inputName || (mode === 'PvE' ? "PLAYER" : "P1");
-    // コメントが空欄なら "..." にする
     const p1Comment = inputComment || "..."; 
-
     const p2Name = mode === 'PvE' ? "CPU" : "P2";
-    const p2Comment = "..."; // CPUは常に無言
+    const p2Comment = "..."; 
 
-    // 2. 画面（枠の中）に反映
-    document.getElementById('p1-label').innerText = p1Name;
-    document.getElementById('p1-comment').innerText = p1Comment;
-
-    document.getElementById('p2-label').innerText = p2Name;
-    document.getElementById('p2-comment').innerText = p2Comment;
-
-    // --- ここから下は既存と同じ ---
     document.getElementById('title-screen').style.display = 'none';
 
-    initBoardUnits();
-    state.turn = 1;
+    const myColorName = "BLUE";
+    const myColorCode = COLORS.p1;
+    const enemyName = p2Name;
 
-    state.turnPlayer = P1;
-    state.turnPlayer.nameDisplay = p1Name; 
+    playStartAnimation(myColorName, myColorCode, enemyName, () => {
+        
+        document.getElementById('p1-label').innerText = p1Name;
+        document.getElementById('p1-comment').innerText = p1Comment;
+        document.getElementById('p2-label').innerText = p2Name;
+        document.getElementById('p2-comment').innerText = p2Comment;
 
-    state.phase = 'SELECT_CARD';
-    state.winner = null;
-    state.isCpuThinking = false;
-    updateTurnVisuals();
-    showToast("GAME START!");
-    resizeCanvas();
-    gameLoop();
-    resetTimer(); // ★追加
+        initBoardUnits();
+        state.turn = 1;
+        state.turnPlayer = P1;
+        state.turnPlayer.nameDisplay = p1Name; 
+        state.phase = 'SELECT_CARD';
+        state.winner = null;
+        state.isCpuThinking = false;
 
+        updateTurnVisuals();
+        showToast("GAME START!");
+        
+        triggerPhaseGuidance(); 
+        
+        resizeCanvas();
+        gameLoop();
 
+        resetTimer(); 
+    });
+} // startGame 終了
+
+function playStartAnimation(myColorName, myColorCode, enemyName, callback) {
+    const screen = document.getElementById('ready-screen');
+    const roleText = document.getElementById('player-role-text');
+    const enemyText = document.getElementById('enemy-name-display');
+
+    roleText.innerText = myColorName;
+    roleText.style.color = myColorCode;
+    enemyText.innerText = enemyName;
+
+    screen.classList.add('active');
+
+    setTimeout(() => {
+        screen.classList.remove('active');
+        if (callback) callback();
+    }, 2000);
 }
 
 function initBoardUnits() {
@@ -518,8 +564,6 @@ function initBoardUnits() {
             const dist = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
             const isEdge = dist === BOARD_RADIUS;
             
-            // ▼▼▼ 修正: 角（コーナー）の判定を追加 ▼▼▼
-            // (q,r)座標の特徴から6つの角を特定します
             const isCorner = (Math.abs(q) === BOARD_RADIUS && r === 0) ||
                              (Math.abs(r) === BOARD_RADIUS && q === 0) ||
                              (Math.abs(q) === BOARD_RADIUS && r === -q);
@@ -541,7 +585,6 @@ function initBoardUnits() {
     });
 }
 
-/* --- メインループ --- */
 function gameLoop() {
     state.frameCount++;
     state.units.forEach(u => {
@@ -552,11 +595,9 @@ function gameLoop() {
     if (!state.winner) requestAnimationFrame(gameLoop);
 }
 
-/* --- 描画ロジック (演出強化・シェイクなし版) --- */
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // グリッド描画（既存のまま）
     state.hexes.forEach(h => {
         const {x, y} = hexToPixel(h.q, h.r);
         let color = COLORS.hex;
@@ -568,7 +609,6 @@ function draw() {
         }
         drawHex(x, y, HEX_SIZE * 0.95, color, stroke, lineWidth);
         
-        // 移動ガイド
         if (state.phase === 'DEFENDER_MOVE' && state.selectedUnit && !state.isCpuThinking) {
             if (!getUnitAt(h.q, h.r)) {
                 ctx.beginPath(); ctx.arc(x, y, HEX_SIZE * 0.2, 0, Math.PI * 2);
@@ -577,29 +617,43 @@ function draw() {
         }
     });
 
-    // 回転プレビュー（既存のまま）
-    if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
-        const startPos = hexToPixel(state.tempRotationStart.q, state.tempRotationStart.r);
-        drawHex(startPos.x, startPos.y, HEX_SIZE * 0.9, '#ffd700', '#fff', 3);
-        state.validDirections.forEach(dirObj => {
-            dirObj.indices.forEach(idx => {
-                if(state.hexes[idx] === state.tempRotationStart) return;
+    if (state.phase === 'SELECT_ROTATION') {
+        if (state.tempRotationStart) {
+            const startPos = hexToPixel(state.tempRotationStart.q, state.tempRotationStart.r);
+            drawHex(startPos.x, startPos.y, HEX_SIZE * 0.9, '#ffd700', '#fff', 3);
+            
+            state.validDirections.forEach(dirObj => {
+                dirObj.indices.forEach(idx => {
+                    if(state.hexes[idx] === state.tempRotationStart) return;
+                    const h = state.hexes[idx];
+                    const p = hexToPixel(h.q, h.r);
+                    ctx.save();
+                    ctx.globalAlpha = 0.5;
+                    drawHex(p.x, p.y, HEX_SIZE * 0.85, '#ffd700', null, 0); 
+                    ctx.restore();
+                });
+                const lastIdx = dirObj.indices[dirObj.indices.length - 1];
+                const lastHex = state.hexes[lastIdx];
+                const endP = hexToPixel(lastHex.q, lastHex.r);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath(); ctx.arc(endP.x, endP.y, 4, 0, Math.PI*2); ctx.fill();
+            });
+        }
+
+        if (state.previewRotation) {
+            const indices = state.previewRotation.indices;
+            indices.forEach(idx => {
                 const h = state.hexes[idx];
                 const p = hexToPixel(h.q, h.r);
                 ctx.save();
-                ctx.globalAlpha = 0.5;
-                drawHex(p.x, p.y, HEX_SIZE * 0.85, '#ffd700', null, 0); 
+                ctx.shadowColor = "#fff";
+                ctx.shadowBlur = 20;
+                drawHex(p.x, p.y, HEX_SIZE * 0.9, 'rgba(255, 255, 200, 0.8)', '#fff', 4);
                 ctx.restore();
             });
-            const lastIdx = dirObj.indices[dirObj.indices.length - 1];
-            const lastHex = state.hexes[lastIdx];
-            const endP = hexToPixel(lastHex.q, lastHex.r);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.beginPath(); ctx.arc(endP.x, endP.y, 4, 0, Math.PI*2); ctx.fill();
-        });
+        }
     }
 
-    // トライアングル（既存のまま）
     [1, 2].forEach(ownerId => {
         const myUnits = state.units.filter(u => u.owner === ownerId);
         if (myUnits.length === 3) {
@@ -619,18 +673,15 @@ function draw() {
         }
     });
 
-    // ユニット描画
     state.units.forEach(u => {
         const {x, y} = hexToPixel(u.animQ, u.animR);
         let color = u.owner === 1 ? COLORS.p1 : COLORS.p2;
         
-        // ▼▼▼ 追加: ダメージを受けた瞬間に白く光らせる ▼▼▼
         if (u.hitFlash > 0) {
              color = '#fff'; 
-             u.hitFlash--; // タイマーを減らす
+             u.hitFlash--;
         }
 
-        // 移動線
         const move = state.defenderMoves.find(m => m.unitId === u.id);
         if (move) {
             const destHex = state.hexes[move.toIndex];
@@ -646,23 +697,61 @@ function draw() {
             ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
         }
         drawHex(x, y, size, color, stroke, lw);
-        // HP
         const hpPct = u.hp / 1000;
         ctx.fillStyle = '#000'; ctx.fillRect(x - 15, y - 5, 30, 4);
         ctx.fillStyle = hpPct > 0.5 ? '#0f0' : '#f00'; ctx.fillRect(x - 15, y - 5, 30 * Math.max(0, hpPct), 4);
     });
     
+    // ... (既存の描画処理) ...
+
+    // ★★★ 追加：移動フェーズのガイド表示（駒がポワワーンと光る） ★★★
+    if (state.showUnitGuidance && state.phase === 'DEFENDER_MOVE') {
+        const defenderId = state.turnPlayer.id === 1 ? 2 : 1; 
+        
+        // ★追加: 経過時間を計算して、じわ～っと消す
+        const elapsed = Date.now() - (state.guidanceStartTime || 0);
+        const duration = 3000; // 3秒かけて消える
+        
+        if (elapsed > duration) {
+            state.showUnitGuidance = false; // 時間切れでオフ
+            return;
+        }
+
+        // フェードアウト率（1.0 → 0.0）
+        const fade = Math.pow(1.0 - (elapsed / duration), 2); 
+
+        // 輪っかのアニメーション
+        const pulse = (Date.now() % 1000) / 1000; 
+        const radius = HEX_SIZE * (1.0 + pulse * 0.8);
+        const alpha = (1.0 - pulse) * fade; // ★変更: フェード率を掛け算
+
+        state.units.forEach(u => {
+            if (u.owner === defenderId) {
+                const {x, y} = hexToPixel(u.animQ, u.animR);
+                
+                // 光る輪っか
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`; // ★alpha適用
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                // 本体も少し光らせる（ここもfadeをかけて自然に消す）
+                ctx.beginPath();
+                ctx.arc(x, y, HEX_SIZE, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 215, 0, ${0.8 * fade})`; // ★fade適用
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        });
+    }
+
     drawEmotes();
 }
 
-/* ▼▼▼ 修正: ダメージ演出 (光るだけ) ▼▼▼ */
 function addDamageEffect(unit, damage) {
-    // 数字が出る処理は削除しました
-
-    // ユニットを光らせるタイマーをセット
     unit.hitFlash = 10; 
 }
-
 
 function drawHex(x, y, size, fill, stroke, lw) {
     ctx.beginPath();
@@ -678,11 +767,8 @@ function drawHex(x, y, size, fill, stroke, lw) {
 }
 function drawArrowHead(x, y) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill(); }
 
-/* --- UI制御 & CPUロジック --- */
 function updateTurnVisuals() {
     const p = state.turnPlayer;
-    
-    // 背景色はそのまま
     document.body.style.backgroundColor = p.bg;
     
     const indicator = document.getElementById('turn-indicator');
@@ -690,50 +776,77 @@ function updateTurnVisuals() {
     const cardPanel = document.getElementById('card-panel');
     const mainBtn = document.getElementById('main-btn');
 
-    // ▼▼▼ 修正: 名前だけを表示（TURNは消す） ▼▼▼
     indicator.innerText = p.name; 
     indicator.style.color = p.color;
 
-    // CPUターン中は操作無効
+    // ★追加: 自分の操作ターンかどうかを判定
+    let isMyTurn = false;
+    if (state.gameMode === 'PvE') {
+        isMyTurn = (p.id === 1); // PvEならP1が自分
+    } else if (state.gameMode === 'ONLINE') {
+        isMyTurn = (p.id === myPlayerId); // OnlineならIDで判定
+    } else {
+        isMyTurn = true; // Title画面など
+    }
+
     if (state.isCpuThinking) {
         cardPanel.style.pointerEvents = 'none';
         mainBtn.disabled = true;
-        // ▼▼▼ 修正: シンプルに ▼▼▼
         badge.innerText = "WAIT"; 
         badge.style.color = "#aaa";
+        
+        // CPU思考中はカードパネルを隠す
+        if (state.phase === 'SELECT_CARD') cardPanel.style.display = 'none';
         return;
     }
-    cardPanel.style.pointerEvents = 'auto';
+    
+    else if (state.phase === 'TURN_CUTIN') {
+        badge.innerText = "";
+        cardPanel.style.display = 'none'; // カットイン中は操作パネルを消す
+        mainBtn.style.display = 'none';
+        return; // これ以上の処理はしない
+    }
 
-    // 自分のターン（攻撃セットアップ）
+cardPanel.style.pointerEvents = 'auto';
+
     if (state.phase === 'SELECT_CARD') {
-        // ▼▼▼ 修正: 短い単語へ ▼▼▼
-        badge.innerText = "PICK CARD";
-        badge.style.color = "#fff";
-        cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+        // ★修正: 自分のターンの時だけパネルを出す
+        if (isMyTurn) {
+            badge.innerText = "PICK CARD";
+            badge.style.color = "#fff";
+            cardPanel.style.display = 'flex';
+        } else {
+            badge.innerText = "OPPONENT TURN";
+            badge.style.color = "#888";
+            cardPanel.style.display = 'none'; // 相手ターンは隠す
+        }
+        mainBtn.style.display = 'none';
         
     } else if (state.phase === 'SELECT_ROTATION') {
-        // ▼▼▼ 修正: 狙え！というニュアンス ▼▼▼
-        badge.innerText = "AIMING"; 
+        badge.innerText = ""; // ★修正: "AIMING" を削除（空文字に）
         badge.style.color = "#fff";
-        cardPanel.style.display = 'flex'; mainBtn.style.display = 'none';
+
+        if (state.previewRotation) {
+            cardPanel.style.display = 'none';
+            mainBtn.style.display = 'block';
+            mainBtn.disabled = false;
+            mainBtn.innerText = "OK";
+        } else {
+            // 回転軸を選んでいる最中も、自分のターンでなければ隠す
+            cardPanel.style.display = isMyTurn ? 'flex' : 'none';
+            mainBtn.style.display = 'none';
+        }
         
     } else if (state.phase === 'DEFENDER_MOVE') {
-        // 相手のターン（回避フェーズ）
-        // ▼▼▼ 修正: 緊急感を出す ▼▼▼
         badge.innerText = "MOVE"; 
-        badge.style.color = "#ff3333"; // 赤文字で警告感
+        badge.style.color = "#fff"; // ★修正: 赤(#ff3333) から 白(#fff) に変更して安心感を出す
 
         cardPanel.style.display = 'none'; mainBtn.style.display = 'block';
         
         const defender = state.turnPlayer.id === 1 ? P2 : P1;
-        
-        // ボタンの文字も変更
         mainBtn.innerText = "GO";
-        
         mainBtn.disabled = false;
         
-        // 手番表示を防御側プレイヤー名に変更
         indicator.innerText = defender.name;
         indicator.style.color = defender.color;
         document.body.style.backgroundColor = defender.bg;
@@ -743,7 +856,6 @@ function updateTurnVisuals() {
     }
 }
 
-// CPUの行動処理 (強化版: 同じユニットの連続移動禁止)
 async function triggerCpuAction() {
     if (state.gameMode !== 'PvE' || state.winner) return;
     
@@ -757,7 +869,6 @@ async function triggerCpuAction() {
 
     await wait(1000);
 
-    // --- 攻撃フェーズ ---
     if (state.phase === 'SELECT_CARD') {
         const bestAction = aiFindBestCardAction();
         const choice = bestAction.cardLen;
@@ -771,32 +882,28 @@ async function triggerCpuAction() {
             state.tempRotationStart = null;
             state.validDirections = [];
             showToast("CPUが回転をセットしました");
-            updateTurnVisuals();
+            updateTurnVisuals();	
+            triggerPhaseGuidance(); 
         } else {
+
             const cards = [2,3,4];
             uiSelectCard(cards[0], true);
         }
     } 
-    // --- 防御/移動フェーズ ---
     else if (state.phase === 'DEFENDER_MOVE') {
-        // 1回目の移動
-        let move1 = aiFindBestMove(); // 引数なし＝制限なし
+        let move1 = aiFindBestMove();
         if (move1) {
             state.defenderMoves.push({ unitId: move1.unitId, toIndex: move1.toIndex });
             
-            // 仮想反映
             const u = state.units.find(u => u.id === move1.unitId);
             const originalQ = u.q; const originalR = u.r;
             const targetHex = state.hexes[move1.toIndex];
             u.q = targetHex.q; u.r = targetHex.r;
 
-            // 2回目の移動 (★修正: move1.unitId を渡して除外させる)
             let move2 = aiFindBestMove(move1.unitId);
             if (move2) {
                 state.defenderMoves.push({ unitId: move2.unitId, toIndex: move2.toIndex });
             }
-
-            // 座標戻し
             u.q = originalQ; u.r = originalR;
         }
 
@@ -809,20 +916,15 @@ async function triggerCpuAction() {
     updateTurnVisuals();
 }
 
-// ユーザー入力
 function uiSelectCard(len, fromCpu = false) {
     if (state.isCpuThinking && !fromCpu) return;
     
-    // ▼▼▼ 追加：オンラインなら相手に送信 ▼▼▼
-    // (fromCpuフラグがある＝相手からの通信で動いている時は、再送信しない)
     if (state.gameMode === 'ONLINE' && !fromCpu) {
         sendAction('SELECT_CARD', { value: len });
     }
-    // ▲▲▲ 追加ここまで ▲▲▲
 
     state.selectedCard = len;
     
-    // ... (以下、既存のアイコン表示コードなどはそのまま) ...
     const svgs = {
         2: `<svg viewBox="0 0 45 24" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(27.32, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g></svg>`,
         3: `<svg viewBox="0 0 62 24" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(27.32, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g><g transform="translate(44.64, 12)"><path d="M0 -10 L8.66 -5 L8.66 5 L0 10 L-8.66 5 L-8.66 -5 Z" /></g></svg>`,
@@ -832,132 +934,198 @@ function uiSelectCard(len, fromCpu = false) {
 
     document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
     document.querySelectorAll('.card')[len-2].classList.add('selected');
+    
     state.phase = 'SELECT_ROTATION';
-
     state.tempRotationStart = null;
     state.validDirections = [];
+    state.previewRotation = null; 
     
-    // プレイヤーの時だけメッセージ
     if (!fromCpu) {
         showToast("軸を選んでください");
     }
     updateTurnVisuals();
     
-    // PvE CPUトリガー (ここは変更なし)
     if (!fromCpu && state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
         triggerCpuAction();
     }
 }
 
-function uiConfirm() {
+async function uiConfirm() {
     if (state.isCpuThinking) return;
+     clearInterval(state.timerInterval);
 
-    // ★追加：オンラインで自分の番じゃないなら押せない
     if (state.gameMode === 'ONLINE') {
-        // 防御フェーズの決定ボタンなので、防御側プレイヤー(myPlayerId)かどうかチェック
+        const isMyPhase = 
+            (state.phase === 'DEFENDER_MOVE' && (state.turnPlayer.id === 1 ? 2 : 1) === myPlayerId) ||
+            (state.phase === 'SELECT_ROTATION' && state.turnPlayer.id === myPlayerId);
+        
+        if (!isMyPhase) return;
+    }
+
+    if (state.phase === 'SELECT_ROTATION' && state.previewRotation) {
+        state.hiddenRotation = state.previewRotation;
+
+        if (state.gameMode === 'ONLINE') {
+            sendAction('ROTATE', { indices: state.hiddenRotation.indices });
+        }
+
+        state.previewRotation = null;
+        state.tempRotationStart = null;
+        state.validDirections = [];
+
+        // 1. 一旦 UI を消して「間」モードにする
+        const prevPhase = state.phase; // 念のため
+        state.phase = 'TURN_CUTIN';    // これで updateTurnVisuals が UI を消す
+        updateTurnVisuals();
+
+        // 2. 1秒待つ（ターン切り替えと同じ演出）
+        await playTurnCutIn(state.turnPlayer);
+
+        if (state.phase !== 'TURN_CUTIN') {
+            return;
+        }
+
+        state.phase = 'DEFENDER_MOVE';
+        updateTurnVisuals();
+        showToast("移動フェーズ");
+        resetTimer();
+
+
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        if (defenderId !== myPlayerId) return;
+        const isMyDefender = (state.gameMode === 'ONLINE') ? (defenderId === myPlayerId) : (state.gameMode === 'PvE' ? defenderId === 1 : true);
+
+        if (isMyDefender) {
+            triggerPhaseGuidance();
+        }
+
+        if (state.gameMode === 'PvE') triggerCpuAction();
+        return;
     }
 
     if (state.phase === 'DEFENDER_MOVE') {
-        // ▼▼▼ 追加：移動内容を送信 ▼▼▼
         if (state.gameMode === 'ONLINE') {
             sendAction('MOVE', { moves: state.defenderMoves });
         }
-        // ▲▲▲ 追加ここまで ▲▲▲
-
         startTurnResolution();
     }
 }
 
-function handleInput(x, y) {
-    if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.winner || state.isCpuThinking) return;
+// ★ 新規追加機能
+async function triggerPhaseGuidance() {
+    // 1. UIが表示されてから「一呼吸（0.5秒）」待つ
+    await wait(500);
 
-    // ★追加：オンラインで相手のターンの時は操作させない
-    if (state.gameMode === 'ONLINE' && state.turnPlayer.id !== myPlayerId && state.phase !== 'DEFENDER_MOVE') return;
-    // 防御フェーズ(DEFENDER_MOVE)の時は、防御側のプレイヤーだけが操作できる
-    if (state.gameMode === 'ONLINE' && state.phase === 'DEFENDER_MOVE') {
-        const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        if (defenderId !== myPlayerId) return;
+    // 2. フェーズに合わせて光らせる
+    if (state.phase === 'SELECT_CARD') {
+        // カードを全部光らせる
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(c => c.classList.add('suggest-glow'));
+        
+        // 3秒後に消す（駒のフェードアウト時間に合わせる）
+        setTimeout(() => {
+            cards.forEach(c => c.classList.remove('suggest-glow'));
+        }, 3000);
+
+    } else if (state.phase === 'DEFENDER_MOVE') {
+        // 駒を光らせるフラグON
+        state.showUnitGuidance = true;
+        
+        // ★★★ 追加：今この瞬間を「開始時間」として記録する ★★★
+        state.guidanceStartTime = Date.now(); 
+    }
+
+}
+
+
+function handleInput(x, y) {
+    // TURN_CUTIN を追加
+    if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.phase === 'TURN_CUTIN' || state.winner || state.isCpuThinking) return;
+
+    if (state.gameMode === 'ONLINE') {
+        if (state.phase === 'DEFENDER_MOVE') {
+            const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
+            if (defenderId !== myPlayerId) return;
+        } else {
+            if (state.turnPlayer.id !== myPlayerId) return;
+        }
     }
 
     const coords = pixelToHex(x, y);
     const hexIndex = getHexIndex(coords.q, coords.r);
     
-    if (hexIndex === -1) return;
+    // ■ 修正点1：背景（盤面外）をクリックした時のキャンセル処理を追加
+    if (hexIndex === -1) {
+        if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
+            state.previewRotation = null;
+            state.tempRotationStart = null;
+            state.validDirections = [];
+            showToast("キャンセルしました");
+            updateTurnVisuals();
+        }
+        return;
+    }
+
     const clickedHex = state.hexes[hexIndex];
 
-    // 回転設定
     if (state.phase === 'SELECT_ROTATION') {
         if (!state.tempRotationStart) {
+            // まだ軸が決まっていない時（最初のタップ）
             state.tempRotationStart = clickedHex;
             calcValidDirections(clickedHex);
             if (state.validDirections.length === 0) {
-                showToast("回転不可"); state.tempRotationStart = null;
+                showToast("回転不可"); 
+                state.tempRotationStart = null;
             }
+        
         } else {
-            // ▼▼▼ 追加：同じ場所をクリックしたらキャンセル ▼▼▼
-            if (state.tempRotationStart.q === clickedHex.q && state.tempRotationStart.r === clickedHex.r) {
+            // 軸がすでに決まっている時（2回目のタップ）
+            
+            // ■ 修正点2：軸（中心）をもう一度タップしたらキャンセルする
+            if (state.tempRotationStart === clickedHex) {
+                state.previewRotation = null;
                 state.tempRotationStart = null;
                 state.validDirections = [];
                 showToast("キャンセルしました");
-                return; // ここで処理を終わらせる
+                updateTurnVisuals();
+                return;
             }
-            // ▲▲▲ 追加ここまで ▲▲▲
 
             const clickedIndex = getHexIndex(clickedHex.q, clickedHex.r);
             const valid = state.validDirections.find(v => v.indices.includes(clickedIndex));
 
             if (valid) {
-                // 確定！
-                state.hiddenRotation = { indices: valid.indices };
-                
-                // ... (中略: 送信処理など) ...
-                if (state.gameMode === 'ONLINE') {
-                    sendAction('ROTATE', { indices: valid.indices });
-                }
-
+                state.previewRotation = { indices: valid.indices };
+                showToast("OKボタンで確定");
+                updateTurnVisuals(); 
+            } 
+            else {
+                // 全く関係ないマスをタップした時のキャンセル
+                state.previewRotation = null;
                 state.tempRotationStart = null;
                 state.validDirections = [];
-                state.phase = 'DEFENDER_MOVE';
-                
+                showToast("キャンセルしました");
                 updateTurnVisuals();
-                showToast("移動フェーズ");
-                resetTimer();
-                
-                if (state.gameMode === 'PvE') triggerCpuAction();
-            }
-            else {
-                // 別の場所をクリックした場合（新しい軸として選び直す）
-                state.tempRotationStart = clickedHex;
-                calcValidDirections(clickedHex);
-                if (state.validDirections.length === 0) {
-                    state.tempRotationStart = null;
-                }
             }
         }
     }
 
-    // 移動設定
     else if (state.phase === 'DEFENDER_MOVE') {
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        // CPUや、オンラインの相手の駒は触れない
         if (state.gameMode === 'PvE' && defenderId === 2) return;
 
         const unit = getUnitAt(clickedHex.q, clickedHex.r);
         
-        // 自分のユニットを選んだ場合
         if (unit && unit.owner === defenderId) {
             if (state.selectedUnit === unit) {
-                state.selectedUnit = null;
+                state.selectedUnit = null; 
             } else {
-                state.selectedUnit = unit;
+                state.selectedUnit = unit; 
             }
             if (state.defenderMoves.find(m => m.unitId === unit.id)) {
                 state.defenderMoves = state.defenderMoves.filter(m => m.unitId !== unit.id);
             }
+            updateTurnVisuals();
 
-        // 空きマスを選んだ場合
         } else if (state.selectedUnit && !unit) {
             const isReserved = state.defenderMoves.find(m => m.toIndex === hexIndex);
             if (isReserved) {
@@ -970,126 +1138,164 @@ function handleInput(x, y) {
             }
 
             state.defenderMoves.push({ unitId: state.selectedUnit.id, toIndex: hexIndex });
-            state.selectedUnit = null;
+            state.selectedUnit = null; 
+            updateTurnVisuals();
         }
-        updateTurnVisuals();
     }
 }
 
-// ターン解決
 async function startTurnResolution() {
     state.phase = 'ANIMATION';
     updateTurnVisuals();
 
-    // 1. 移動
-    for (let m of state.defenderMoves) {
-        const u = state.units.find(u => u.id === m.unitId);
-        const target = state.hexes[m.toIndex];
-        u.q = target.q; u.r = target.r;
-    }
-    state.defenderMoves = [];
-    await wait(800);
-
-    // 2. 回転
-    const indices = state.hiddenRotation.indices;
-    showToast("ROTATION!");
-    await wait(500);
-    let unitsOnLine = [];
-    indices.forEach((hexIdx, linePos) => {
-        const h = state.hexes[hexIdx];
-        const u = getUnitAt(h.q, h.r);
-        if(u) unitsOnLine.push({ u, linePos });
-    });
-    const len = indices.length;
-    unitsOnLine.forEach(item => {
-        let nextLinePos = (len - 1) - item.linePos;
-        let nextHex = state.hexes[indices[nextLinePos]];
-        item.u.q = nextHex.q; item.u.r = nextHex.r;
-    });
-    await wait(1000);
-
-    // 3. ダメージ（ここを丸ごと書き換え）
-    
-    // 角・辺のダメージチェック
-    state.units.forEach(u => {
-        const h = state.hexes[getHexIndex(u.q, u.r)];
-        
-        let damage = 0;
-        if (h.isCorner) {
-            damage = 250; // 角は大ダメージ
-        } else if (h.isEdge) { 
-            damage = 100; // 辺は小ダメージ
-        }
-
-        if (damage > 0) {
-            u.hp -= damage;
-            addDamageEffect(u, damage); // ★ここで演出呼び出し！
-        }
-    });
-
-    // トライアングル攻撃のダメージチェック
-    [1, 2].forEach(attackerId => {
-        const myUnits = state.units.filter(u => u.owner === attackerId);
-        if (myUnits.length === 3) {
-            const pts = myUnits.map(u => hexToPixel(u.q, u.r));
-            if (isEquilateral(pts[0], pts[1], pts[2])) {
-                const defenderId = attackerId===1?2:1;
-                state.units.filter(u => u.owner === defenderId).forEach(target => {
-                    const ratio = getTriangleOverlapRatio(target, pts[0], pts[1], pts[2]);
-                    if (ratio > 0.01) { 
-                        const dmg = Math.floor(500 * ratio);
-                        target.hp -= dmg;
-                        addDamageEffect(target, dmg); // ★ここでも演出呼び出し！
-                    }
-                });
+    try {
+        for (let m of state.defenderMoves) {
+            const u = state.units.find(u => u.id === m.unitId);
+            if (!u) continue; 
+            if (m.toIndex >= 0 && m.toIndex < state.hexes.length) {
+                const target = state.hexes[m.toIndex];
+                u.q = target.q; u.r = target.r;
             }
         }
-    });
-    
-    // showToast は削除して呼び出さない
-    await wait(1500);
+        state.defenderMoves = [];
+        await wait(800);
 
+        if (state.hiddenRotation && state.hiddenRotation.indices) {
+            const indices = state.hiddenRotation.indices;
+            showToast("ROTATION!");
+            await wait(500);
+            
+            let unitsOnLine = [];
+            indices.forEach((hexIdx, linePos) => {
+                if (!state.hexes[hexIdx]) return; 
+                const h = state.hexes[hexIdx];
+                const u = getUnitAt(h.q, h.r);
+                if(u) unitsOnLine.push({ u, linePos });
+            });
+            
+            const len = indices.length;
+            unitsOnLine.forEach(item => {
+                let nextLinePos = (len - 1) - item.linePos;
+                if (indices[nextLinePos] !== undefined && state.hexes[indices[nextLinePos]]) {
+                    let nextHex = state.hexes[indices[nextLinePos]];
+                    item.u.q = nextHex.q; item.u.r = nextHex.r;
+                }
+            });
+            await wait(1000);
+        }
 
-    // 終了判定
-    const p1Lose = state.units.some(u => u.owner === 1 && u.hp <= 0);
-    const p2Lose = state.units.some(u => u.owner === 2 && u.hp <= 0);
-    
-    if (p1Lose || p2Lose) {
-        // ▼▼▼ ここを変更 ▼▼▼
-        state.winner = p1Lose && p2Lose ? "DRAW" : (p1Lose ? "RED" : "BLUE"); // 名前だけにする
-        showResult(state.winner); // リザルト画面を表示
-        // ▲▲▲ 変更ここまで ▲▲▲
-    } else {
-        nextTurn();
+        state.units.forEach(u => {
+            const idx = getHexIndex(u.q, u.r);
+            if (idx === -1) return;
+            const h = state.hexes[idx];
+            let damage = 0;
+            if (h.isCorner) damage = 250;
+            else if (h.isEdge) damage = 100;
+
+            if (damage > 0) {
+                u.hp -= damage;
+                addDamageEffect(u, damage);
+            }
+        });
+
+        [1, 2].forEach(attackerId => {
+            const myUnits = state.units.filter(u => u.owner === attackerId);
+            if (myUnits.length === 3) {
+                const pts = myUnits.map(u => hexToPixel(u.q, u.r));
+                if (isEquilateral(pts[0], pts[1], pts[2])) {
+                    const defenderId = attackerId === 1 ? 2 : 1;
+                    state.units.filter(u => u.owner === defenderId).forEach(target => {
+                        const ratio = getTriangleOverlapRatio(target, pts[0], pts[1], pts[2]);
+                        if (ratio > 0.01) { 
+                            const dmg = Math.floor(350 * ratio);
+                            target.hp -= dmg;
+                            addDamageEffect(target, dmg);
+                        }
+                    });
+                }
+            }
+        });
+        
+        await wait(1500);
+
+        const p1Lose = state.units.some(u => u.owner === 1 && u.hp <= 0);
+        const p2Lose = state.units.some(u => u.owner === 2 && u.hp <= 0);
+        
+        if (p1Lose || p2Lose) {
+            state.winner = p1Lose && p2Lose ? "DRAW" : (p1Lose ? "RED" : "BLUE");
+            showResult(state.winner);
+        } else {
+            nextTurn();
+        }
+
+    } catch (error) {
+        console.error("重大なエラー:", error);
+        showToast("ERROR RECOVERED");
+        nextTurn(); 
     }
 }
 
+async function nextTurn() {
+ clearInterval(state.timerInterval);
 
-function nextTurn() {
+    // 1. プレイヤーの切り替え（内部データ更新）は必ず先にやる
     state.turnPlayer = state.turnPlayer.id === 1 ? P2 : P1;
     if (state.turnPlayer.id === 1) state.turn++;
-    
-    // 次のターンになったら表示を消す
-    document.getElementById('card-info').innerText = "";
 
+    // ★★★ 修正ポイント ★★★
+    // もし通信によって、すでに次のフェーズ（カード選択済みや移動フェーズ）に進んでいたら、
+    // ここでフェーズを 'TURN_CUTIN' に戻してしまうとバグるため、処理を中断する。
+    if (state.gameMode === 'ONLINE') {
+        if (state.phase === 'SELECT_ROTATION' || state.phase === 'DEFENDER_MOVE') {
+            console.log("Online sync: Skip phase reset");
+            updateTurnVisuals(); // 色などを正しいプレイヤーに更新しておく
+            return;
+        }
+    }
+    // ★★★ ここまで ★★★
+    
+    // 2. フェーズを一時的に「演出中」にして、操作をブロックする
+    state.phase = 'TURN_CUTIN'; 
+    updateTurnVisuals(); 
+
+    // 3. カットイン演出を再生して待機
+    await playTurnCutIn(state.turnPlayer);
+
+    // 4. 待機中に通信でフェーズが進んでしまった場合のガード（既存の処理）
+    if (state.phase !== 'TURN_CUTIN') {
+        console.log("Skip phase reset due to online event");
+        return; 
+    }
+
+    // 5. 演出が終わったら、実際の操作フェーズへ移行
+    document.getElementById('card-info').innerText = "";
     state.phase = 'SELECT_CARD';
     state.selectedCard = null;
-    document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+    state.hiddenRotation = null; 
     
-    updateTurnVisuals();
-    showToast(`${state.turnPlayer.name}'s TURN`);
+   document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+    
+    updateTurnVisuals(); 
+    resetTimer(); 
 
-    /* ▼▼▼ 追加：ターン開始時にタイマー始動 ▼▼▼ */
-    resetTimer();
+    if (state.gameMode !== 'ONLINE' || state.turnPlayer.id === myPlayerId) {
+        triggerPhaseGuidance();
+    }
 
-    // CPUターン開始
     if (state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
         triggerCpuAction();
     }
 }
 
+function playTurnCutIn(player) {
+    return new Promise(resolve => {
+        // 1000ミリ秒（1秒）の「間」を作る
+        setTimeout(() => {
+            resolve();
+        }, 1000);
+    });
+}
 
-// ユーティリティ
 function calcValidDirections(startHex) {
     state.validDirections = [];
     DIRECTIONS.forEach((d, idx) => {
@@ -1140,36 +1346,28 @@ function isEquilateral(p1, p2, p3) {
 }
 function getTriangleOverlapRatio(unit, t1, t2, t3) {
     const unitPos = hexToPixel(unit.q, unit.r);
-    
-    // ▼ 修正：見た目のサイズ(0.7)に判定範囲を合わせる！
-    // これで「触れてないのに当たった」現象が消えます
     const visualRadius = HEX_SIZE * 0.7; 
 
     let hitCount = 0;
     let totalPoints = 0;
 
-    // 1. 中心点のチェック
     if (isPointInTriangle(unitPos, t1, t2, t3)) hitCount++;
     totalPoints++;
 
-    // 2. 周囲の点のチェック（精度を上げるため3段階に増量）
     const rings = [
-        { r: 0.4, count: 6 },   // 内側
-        { r: 0.8, count: 8 },   // 中間
-        { r: 1.0, count: 12 }   // 外周（一番重要なので多めに）
+        { r: 0.4, count: 6 },
+        { r: 0.8, count: 8 },
+        { r: 1.0, count: 12 }
     ];
 
     rings.forEach(ring => {
-        // visualRadius を基準に計算するので、見た目からはみ出さない
         const r = visualRadius * ring.r;
-        
         for(let i = 0; i < ring.count; i++) {
             const theta = (Math.PI * 2 / ring.count) * i;
             const p = {
                 x: unitPos.x + r * Math.cos(theta),
                 y: unitPos.y + r * Math.sin(theta)
             };
-            
             if (isPointInTriangle(p, t1, t2, t3)) hitCount++;
             totalPoints++;
         }
@@ -1194,53 +1392,52 @@ function resizeCanvas() {
     HEX_SIZE = Math.min((canvas.width*0.95)/(7*Math.sqrt(3)), (canvas.height*0.95)/(7*1.5));
 }
 function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg; t.style.opacity = 1;
-    setTimeout(() => t.style.opacity = 0, 2000);
 }
+
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 window.addEventListener('resize', resizeCanvas);
-// キャンバス上でのスクロールを完全に防ぐ
 const preventScroll = (e) => { e.preventDefault(); };
 canvas.addEventListener('touchmove', preventScroll, {passive: false});
 
-canvas.addEventListener('touchstart', e => {
-    e.preventDefault(); // ここでスクロール発生を防ぐ
-    const r = canvas.getBoundingClientRect();
-    // タッチ位置の補正
-    handleInput(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
-}, {passive: false});
+function onInputStart(e) {
+    if (e.cancelable) e.preventDefault(); 
 
-// 最初にCanvasサイズを設定
+    const r = canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+
+    handleInput(clientX - r.left, clientY - r.top);
+}
+
+canvas.addEventListener('touchstart', onInputStart, {passive: false});
+canvas.addEventListener('mousedown', onInputStart);
+
 resizeCanvas();
 
-/* --- AI Logic Helpers --- */
-
-// 全カード・全回転をシミュレーションして最善手を探す
 function aiFindBestCardAction() {
     let bestScore = -Infinity;
-    let bestAction = { cardLen: 3, indices: null }; // デフォルト
+    let bestAction = { cardLen: 3, indices: null }; 
 
     const cardLens = [2, 3, 4];
     
-    // 全カード長
     for (let len of cardLens) {
-        // 全マス
         for (let i = 0; i < state.hexes.length; i++) {
             const h = state.hexes[i];
-            // 全方向
             for (let dirIdx = 0; dirIdx < DIRECTIONS.length; dirIdx++) {
                 const indices = getLineIndices(h, len, dirIdx);
                 if (!indices) continue;
 
-                // シミュレーション: ユニットの座標を仮更新
                 const simUnits = aiSimulateRotation(indices);
-                
-                // 盤面評価
                 const score = aiEvaluateBoard(simUnits);
                 
-                // スコア更新 (ランダム性を少し入れて同じスコアならバラけさせる)
-                if (score > bestScore + (Math.random() * 5)) { // 僅差なら入れ替え
+                if (score > bestScore + (Math.random() * 5)) { 
                     bestScore = score;
                     bestAction = { cardLen: len, indices: indices };
                 }
@@ -1250,40 +1447,32 @@ function aiFindBestCardAction() {
     return bestAction;
 }
 
-// 全ユニット・全移動先をシミュレーションして最善の移動を探す
-// 引数 excludeUnitId: 計算から除外するユニットID (2回目の移動で使用)
 function aiFindBestMove(excludeUnitId = null) {
     let bestScore = -Infinity;
     let bestMove = null;
 
     const cpuUnits = state.units.filter(u => u.owner === 2);
     
-    // 現在埋まっている場所
     const occupied = new Set(state.units.map(u => getHexIndex(u.q, u.r)));
     state.defenderMoves.forEach(m => occupied.add(m.toIndex));
 
     for (let u of cpuUnits) {
-        // ★修正: 除外指定されたユニットならスキップ
         if (excludeUnitId && u.id === excludeUnitId) continue;
 
         const currentIdx = getHexIndex(u.q, u.r);
         
-        // 全空きマスを探索
         for (let i = 0; i < state.hexes.length; i++) {
             if (occupied.has(i)) continue;
             if (i === currentIdx) continue;
 
-            // シミュレーション
             const simUnits = state.units.map(unit => ({ ...unit }));
             const targetUnit = simUnits.find(unit => unit.id === u.id);
             const targetHex = state.hexes[i];
             targetUnit.q = targetHex.q;
             targetUnit.r = targetHex.r;
 
-            // 評価
             let score = aiEvaluateBoard(simUnits);
 
-            // 外周回避ロジック
             if (targetHex.isEdge && score < 500) { 
                  score -= 1000;
             }
@@ -1297,9 +1486,8 @@ function aiFindBestMove(excludeUnitId = null) {
     return bestMove;
 }
 
-// 回転結果をシミュレーションしてユニットの仮座標リストを返す
 function aiSimulateRotation(indices) {
-    const simUnits = state.units.map(u => ({ ...u })); // Deep Copy
+    const simUnits = state.units.map(u => ({ ...u })); 
     let unitsOnLine = [];
     indices.forEach((hexIdx, linePos) => {
         const h = state.hexes[hexIdx];
@@ -1309,7 +1497,7 @@ function aiSimulateRotation(indices) {
     
     const len = indices.length;
     unitsOnLine.forEach(item => {
-        let nextLinePos = (len - 1) - item.linePos; // 反転
+        let nextLinePos = (len - 1) - item.linePos; 
         let nextHex = state.hexes[indices[nextLinePos]];
         item.u.q = nextHex.q;
         item.u.r = nextHex.r;
@@ -1317,31 +1505,23 @@ function aiSimulateRotation(indices) {
     return simUnits;
 }
 
-// 盤面のスコア計算 (ここがAIの判断基準)
 function aiEvaluateBoard(simUnits) {
     let score = 0;
     const cpuId = 2;
     const playerId = 1;
 
-    // 1. 外周(Edge)の評価
     simUnits.forEach(u => {
         const hIdx = getHexIndex(u.q, u.r);
         if (hIdx !== -1 && state.hexes[hIdx].isEdge) {
-            // ▼▼▼ 修正箇所: ペナルティを大幅強化 (-300 -> -2000) ▼▼▼
-            // HPが減るのを極端に嫌がるように設定
             if (u.owner === cpuId) score -= 2000;   
-            
-            // 敵を外周に追いやるのは良いこと
             if (u.owner === playerId) score += 300; 
         }
     });
 
-    // 2. 三角形(Triangle)の評価
     [cpuId, playerId].forEach(owner => {
         const myUnits = simUnits.filter(u => u.owner === owner);
         if (myUnits.length === 3) {
             const pts = myUnits.map(u => hexToPixel(u.q, u.r));
-            // 正三角形ができているか？
             if (isEquilateral(pts[0], pts[1], pts[2])) {
                 const targetId = owner === cpuId ? playerId : cpuId;
                 const targets = simUnits.filter(u => u.owner === targetId);
@@ -1353,18 +1533,14 @@ function aiEvaluateBoard(simUnits) {
                 });
 
                 if (owner === cpuId) {
-                    // 自分の攻撃チャンス
                     if (hits > 0) {
-                        score += 5000 * hits; // 攻撃成功は高評価
+                        score += 5000 * hits;
                     } else {
-                        score -= 200; // 空振りは少し減点
+                        score -= 200;
                     }
                 } else {
-                    // 敵の攻撃（自分が食らう）
                     score -= 500; 
                     if (hits > 0) {
-                        // ▼▼▼ 修正箇所: 被弾の回避優先度をさらに上げる ▼▼▼
-                        // ダメージを受ける状態は「死」と同義として最大級のペナルティ
                         score -= 20000 * hits; 
                     }
                 }
@@ -1375,25 +1551,19 @@ function aiEvaluateBoard(simUnits) {
     return score;
 }
 
-/* --- リザルト画面制御 (新規追加) --- */
-
 function showResult(winnerName) {
     const screen = document.getElementById('result-screen');
     const nameEl = document.getElementById('winner-name');
     
-    // 表示テキストと色を設定
     if (winnerName === "DRAW") {
         nameEl.innerText = "DRAW";
         nameEl.style.color = "#fff";
     } else {
         nameEl.innerText = winnerName;
-        // 勝者の色を適用
         nameEl.style.color = (winnerName === "BLUE") ? COLORS.p1 : COLORS.p2;
     }
 
-    // 画面を表示
     screen.style.display = 'flex';
-    // 少し遅らせてクラス追加（アニメーション用）
     setTimeout(() => {
         screen.classList.add('show');
     }, 10);
@@ -1406,87 +1576,66 @@ function backToTitle() {
     document.getElementById('settings-modal').classList.remove('active');
     document.getElementById('secret-modal').classList.remove('active');
 
-    // ▼▼▼ 修正後：安全な書き方 ▼▼▼
     if (state.gameMode === 'ONLINE' && roomId) {
-        const targetRoom = roomId; // 1. 消す予定の部屋IDをメモしておく
-        roomId = null;             // 2. 先に「自分はもう部屋にいない」ことにする（これで監視に引っかからない）
+        const actionsRef = ref(db, roomId + '/action');
+        off(actionsRef);
+
+        const roomRef = ref(db, roomId);
+        off(roomRef);
+
+        const targetRoom = roomId; 
+        roomId = null;             
         
-        // 3. メモしておいた部屋IDを使って、裏でこっそり削除する
         remove(ref(db, targetRoom))
             .then(() => console.log("部屋データを削除しました"))
             .catch((e) => console.error("削除エラー:", e));
     }
-    // ▲▲▲ 修正後ここまで ▲▲▲
 
     const resScreen = document.getElementById('result-screen');
     resScreen.classList.remove('show');
 
     setTimeout(() => resScreen.style.display = 'none', 500);
 
-    // ゲーム内要素のクリア
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('turn-indicator').innerText = "";
     document.getElementById('card-info').innerHTML = "";
 
-    // タイトル画面を表示
     document.getElementById('title-screen').style.display = 'flex';
 }
 
-/* --- 中断機能 (新規追加) --- */
 function quitGame() {
-    // 誤タップ防止の確認
     if (!confirm("タイトル画面に戻りますか？\n（現在の対戦は破棄されます）")) {
         return;
     }
 
-    // ゲームループを止めるためのフラグを立てる
     state.winner = "QUIT"; 
-    
-    // CPU思考中フラグも折る（念のため）
     state.isCpuThinking = false;
 
-    // 既存のタイトル戻り関数を呼び出す
     backToTitle();
 }
 
-/* --- エモート機能 (新規追加) --- */
-
-// メニューの開閉
 function toggleEmoteMenu() {
     document.getElementById('emote-menu').classList.toggle('show');
 }
 
-/* ▼▼▼ 修正：Canvasの枠に関係なく表示する最強版 ▼▼▼ */
-
-// 1. 描画関数はもう使わないので空にする
 function drawEmotes() {
-    // DOM要素で表示するため、ここでの処理は不要
 }
 
-// 2. 新しいエモート表示処理
 function sendEmote(emoji, forceOwnerId = null) {
-    /* ▼▼▼ 追加：3秒のクールダウン（連打防止） ▼▼▼ */
     const now = Date.now();
-    // 相手からの受信(forceOwnerIdあり)の場合はクールダウン無視
     if (!forceOwnerId && now - state.lastEmoteTime < 3000) { 
         showToast("少々お待ちください...");
         return; 
     }
     if (!forceOwnerId) state.lastEmoteTime = now;
-    /* ▲▲▲ 追加ここまで ▲▲▲ */
 
-    // メニューを閉じる
     document.getElementById('emote-menu').classList.remove('show');
 
-    // ▼▼▼ 追加：オンラインなら相手に送信 ▼▼▼
-    // forceOwnerIdがない＝自分が押したボタン という意味
     if (state.gameMode === 'ONLINE' && !forceOwnerId) {
         sendAction('EMOTE', { value: emoji });
     }
-    // ▲▲▲ 追加ここまで ▲▲▲
 
     let ownerId;
-    // ... (以下そのまま) ...
 
     if (forceOwnerId) {
         ownerId = forceOwnerId;
@@ -1495,96 +1644,77 @@ function sendEmote(emoji, forceOwnerId = null) {
         else ownerId = state.turnPlayer.id;
     }
 
-    // ★HTML要素（div）を新しく作る
     const el = document.createElement('div');
     el.innerText = emoji;
     
-    // スタイル設定（画面のどこにでも出せる設定）
     el.style.position = 'fixed';
-    el.style.zIndex = '9999';       // 画面の何よりも手前に
-    el.style.fontSize = '40px';     // 大きさ
+    el.style.zIndex = '9999';
+    el.style.fontSize = '40px';
     el.style.fontWeight = 'bold';
-    el.style.pointerEvents = 'none'; // クリックの邪魔をしない
-    el.style.textShadow = '0 4px 10px rgba(0,0,0,0.5)'; // 影をつけて見やすく
+    el.style.pointerEvents = 'none';
+    el.style.textShadow = '0 4px 10px rgba(0,0,0,0.5)';
     el.style.fontFamily = "Arial, sans-serif";
 
-    // 位置設定（ここで好きな高さを指定できます！）
-    const topPosition = '120px'; // ★ここを変えればいくらでも上にできます
+    const topPosition = '120px';
 
     if (ownerId === 1) {
-        // P1 (左側)
         el.style.left = '40px'; 
         el.style.top = topPosition;
-        el.style.transformOrigin = 'center left'; // 左から出る感じ
+        el.style.transformOrigin = 'center left';
     } else {
-        // P2 (右側)
-        el.style.right = '40px'; // 右端からの距離
+        el.style.right = '40px';
         el.style.top = topPosition;
-        el.style.transformOrigin = 'center right'; // 右から出る感じ
+        el.style.transformOrigin = 'center right';
     }
 
-    // 画面に追加
     document.body.appendChild(el);
 
-    // アニメーション設定 (Web Animations API)
-    // ポンッと出て、ふんわり上に消える動き
     const anim = el.animate([
-        { transform: 'scale(0) translateY(20px)', opacity: 0 },    // 0%: 小さくて透明
-        { transform: 'scale(1.2) translateY(0)', opacity: 1, offset: 0.1 }, // 10%: ポンッと拡大
-        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.2 }, // 20%: 元のサイズに
-        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.7 }, // 70%: 待機
-        { transform: 'scale(1.0) translateY(-50px)', opacity: 0 }  // 100%: 上に昇って消える
+        { transform: 'scale(0) translateY(20px)', opacity: 0 },
+        { transform: 'scale(1.2) translateY(0)', opacity: 1, offset: 0.1 },
+        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.2 },
+        { transform: 'scale(1.0) translateY(0)', opacity: 1, offset: 0.7 },
+        { transform: 'scale(1.0) translateY(-50px)', opacity: 0 }
     ], {
-        duration: 1500, // 1.5秒かけて動く
+        duration: 1500,
         easing: 'ease-out'
     });
 
-    // アニメが終わったらゴミ掃除（要素を削除）
     anim.onfinish = () => el.remove();
 }
 
-/* ▼▼▼ オンライン対戦機能 (Firebase版・ランダム陣営) ▼▼▼ */
-
 let roomId = null;
-let myPlayerId = 0; // 1=P1(青), 2=P2(赤)
+let myPlayerId = 0; 
 
-// オンラインゲーム開始ボタン
 window.startOnlineGame = function() { 
+    if (bgm.paused) {
+        bgm.play().catch(()=>{});
+    }
+
     const inputRoom = document.getElementById('room-input').value.trim();
+
     if (!inputRoom) {
         alert("合言葉を入力してください");
         return;
     }
     
-    // ▼▼▼ 修正ポイント ▼▼▼
-    // 以前：英数字以外を全部消していた（日本語も消えていた）
-    // const sanitizedRoomId = inputRoom.replace(/[^a-zA-Z0-9]/g, '');
-
-    // 今回：データベースで禁止されている「. # $ [ ] /」だけを消す
-    // これなら「ひみつ」「テスト」「★」などもそのまま通ります
     const sanitizedRoomId = inputRoom.replace(/[.#$\[\]\/]/g, '');
-    // ▲▲▲ 修正ここまで ▲▲▲
 
     if (!sanitizedRoomId) {
-        // 記号しか入力していなかった場合の対策
         alert("その合言葉は使えません（禁止記号が含まれています）");
         return;
     }
 
-    // 保存場所の設定（前回同様 rooms_v2 にしておくと安全です）
     roomId = "rooms_v2/" + sanitizedRoomId;
     
     const myName = document.getElementById('username-input').value.trim() || "PLAYER";
 
-    // 部屋を見に行く
     const roomRef = ref(db, roomId);
     get(roomRef).then((snapshot) => {
         if (!snapshot.exists()) {
-            // 部屋がない → 自分がホスト
             createRoom(myName);
         } else {
             const data = snapshot.val();
-            // 空いている席を探す
             if (!data.p1) {
                 joinRoom(myName, 1);
             } else if (!data.p2) {
@@ -1599,13 +1729,18 @@ window.startOnlineGame = function() {
     });
 };
 
-// 部屋を作る(ホスト)
 function createRoom(name) {
     myPlayerId = Math.random() < 0.5 ? 1 : 2;
+    
+    const myComment = document.getElementById('comment-input').value.trim() || "...";
 
     const roomData = {
         p1: myPlayerId === 1 ? name : null,
+        p1Comment: myPlayerId === 1 ? myComment : null,
+        
         p2: myPlayerId === 2 ? name : null,
+        p2Comment: myPlayerId === 2 ? myComment : null,
+        
         status: "waiting",
         turn: 1,
         lastUpdate: Date.now()
@@ -1614,60 +1749,53 @@ function createRoom(name) {
     const roomRef = ref(db, roomId);
     set(roomRef, roomData);
 
-    // ▼▼▼ 追加：もし落ちたら部屋を消す予約 ▼▼▼
     onDisconnect(roomRef).remove(); 
-    // ▲▲▲ 追加ここまで ▲▲▲
 
     waitForOpponent();
 }
 
-// 部屋に参加する(ゲスト)
 function joinRoom(name, joinAsId) {
     myPlayerId = joinAsId;
-    
+
+    const myComment = document.getElementById('comment-input').value.trim() || "...";
+
     const updates = {};
     updates[`p${myPlayerId}`] = name;
+    updates[`p${myPlayerId}Comment`] = myComment;
     updates["status"] = "ready";
     
     const roomRef = ref(db, roomId);
-    update(roomRef, updates);
 
-    // ▼▼▼ 追加：もし落ちたら部屋を消す予約 ▼▼▼
+    update(roomRef, updates)
+        .then(() => {
+            startGameOnline(); 
+        });
+
     onDisconnect(roomRef).remove();
-    // ▲▲▲ 追加ここまで ▲▲▲
-    
-    const opponentId = myPlayerId === 1 ? 2 : 1;
-    get(ref(db, roomId + `/p${opponentId}`)).then((snap) => {
-        startGameOnline(snap.val());
-    });
 }
 
-// 相手待ち画面を表示
 function waitForOpponent() {
-    
-    // 2. 合言葉を表示
     const inputVal = document.getElementById('room-input').value;
     document.getElementById('display-room-id').innerText = inputVal;
 
-    // 3. 待機モーダルを表示
-    document.getElementById('secret-modal').classList.remove('active'); // 入力画面は消す
-    document.getElementById('waiting-modal').classList.add('active'); // 待機画面を出す
+    document.getElementById('secret-modal').classList.remove('active');
+    document.getElementById('waiting-modal').classList.add('active');
 
-    // 4. 相手の参加を監視
     const waitTargetId = myPlayerId === 1 ? 2 : 1;
     const waitRef = ref(db, roomId + `/p${waitTargetId}`);
     
     onValue(waitRef, (snapshot) => {
         if (snapshot.exists()) {
-            // 相手が来たらモーダルを消して開始
             document.getElementById('waiting-modal').classList.remove('active');
             showToast("相手が参加しました！");
-            startGameOnline(snapshot.val()); 
+            
+            setTimeout(() => {
+                startGameOnline(); 
+            }, 500); 
         }
     });
 }
 
-// ▼▼▼ 新規：共有ボタンの処理（スマホの共有メニューが開きます） ▼▼▼
 window.shareInviteLink = async function() {
     const inputVal = document.getElementById('room-input').value;
     const baseUrl = window.location.href.split('?')[0];
@@ -1679,15 +1807,12 @@ window.shareInviteLink = async function() {
         url: inviteUrl,
     };
 
-    // ブラウザが共有機能に対応しているかチェック
     if (navigator.share) {
         try {
-            await navigator.share(shareData); // スマホの共有メニューを開く
+            await navigator.share(shareData); 
         } catch (err) {
-            // キャンセルされた場合は何もしない
         }
     } else {
-        // PCなど共有メニューが出ない場合は、URLをコピーする
         navigator.clipboard.writeText(inviteUrl).then(() => {
             showToast("URLをコピーしました！");
         }).catch(() => {
@@ -1697,9 +1822,7 @@ window.shareInviteLink = async function() {
     }
 };
 
-// ▼▼▼ 新規：待機キャンセル処理 ▼▼▼
 window.cancelWait = function() {
-    // 部屋を削除して戻る
     if (roomId) {
         remove(ref(db, roomId));
         roomId = null;
@@ -1708,8 +1831,10 @@ window.cancelWait = function() {
     document.getElementById('title-screen').style.display = 'flex';
 };
 
-// ゲーム開始処理（共通）
-function startGameOnline(opponentName) {
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// 2つ目の要注意箇所: startGameOnline
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+function startGameOnline() {
     state.gameMode = 'ONLINE';
     state.turn = 1;
     state.turnPlayer = P1;
@@ -1717,101 +1842,83 @@ function startGameOnline(opponentName) {
     state.winner = null;
     state.isCpuThinking = false;
     
-    const myName = document.getElementById('username-input').value || "YOU";
-    const oppName = opponentName || "OPPONENT";
-
-    // 名前ラベルの設定（自分がどっちになっても正しく表示する）
-    if (myPlayerId === 1) {
-        // 自分＝青(P1)
-        document.getElementById('p1-label').innerText = myName;
-        document.getElementById('p2-label').innerText = oppName;
-    } else {
-        // 自分＝赤(P2)
-        document.getElementById('p1-label').innerText = oppName;
-        document.getElementById('p2-label').innerText = myName;
-    }
-
     document.getElementById('title-screen').style.display = 'none';
-    initBoardUnits();
-    resizeCanvas();
-    updateTurnVisuals();
-    gameLoop();
-    resetTimer(); // ★追加
 
-    
-    startOnlineListener();
-}
+    get(ref(db, roomId)).then((snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
 
-// 相手の操作を受信して反映する
-function startOnlineListener() {
-    onValue(ref(db, roomId + "/action"), (snapshot) => {
-        const action = snapshot.val();
-        if (!action) return;
+        const p1Name = data.p1 || "PLAYER 1";
+        const p1Comment = data.p1Comment || "..."; 
+        const p2Name = data.p2 || "PLAYER 2";
+        const p2Comment = data.p2Comment || "..."; 
+
+        if (myPlayerId === 1) {
+            document.getElementById('p1-label').innerText = p1Name;
+            document.getElementById('p1-comment').innerText = p1Comment; 
+            document.getElementById('p2-label').innerText = p2Name;
+            document.getElementById('p2-comment').innerText = p2Comment; 
+        } else {
+            document.getElementById('p1-label').innerText = p1Name; 
+            document.getElementById('p1-comment').innerText = p1Comment; 
+            document.getElementById('p2-label').innerText = p2Name;
+            document.getElementById('p2-comment').innerText = p2Comment; 
+        }
+
+        let myColorName, myColorCode, enemyName;
         
-        // 自分が送ったデータなら無視
-        if (action.sender === myPlayerId) return;
-
-        // 相手の操作を再現
-        if (action.type === 'SELECT_CARD') {
-            uiSelectCard(action.value, true); 
-        } else if (action.type === 'ROTATE') {
-            state.hiddenRotation = { indices: action.indices };
-            state.phase = 'DEFENDER_MOVE';
-            updateTurnVisuals();
-            showToast("相手が回転を決めました");
-        } else if (action.type === 'MOVE') {
-            state.defenderMoves = action.moves;
-            startTurnResolution(); 
-        } 
-        /* ▼▼▼ 追加：エモートの受信 ▼▼▼ */
-        else if (action.type === 'EMOTE') {
-            // 相手(action.sender)としてエモートを表示
-            sendEmote(action.value, action.sender);
+        if (myPlayerId === 1) {
+            myColorName = "BLUE";
+            myColorCode = COLORS.p1;
+            enemyName = p2Name;
+        } else {
+            myColorName = "RED";
+            myColorCode = COLORS.p2;
+            enemyName = p1Name;
         }
-});
-onValue(ref(db, roomId), (snapshot) => {
-    // データがnull（存在しない）になったら
-    if (!snapshot.exists()) {
-        // まだ自分がオンライン対戦中のつもりなら
-        if (state.gameMode === 'ONLINE') {
-            alert("対戦相手が退出しました\nタイトルに戻ります");
+
+        playStartAnimation(myColorName, myColorCode, enemyName, () => {
             
-            // 重要：無限ループしないように、先にroomIdを空にしてから戻る
-            roomId = null; 
-            backToTitle();
-        }
-    }
+            initBoardUnits();
+            resizeCanvas();
+            updateTurnVisuals();
+            gameLoop();
+            resetTimer();
+            startOnlineListener();
+            
+        });
+
+    }).catch((err) => {
+        console.error("開始エラー:", err);
+        alert("開始に失敗しました");
+        backToTitle();
     });
-}
+} // startGameOnline 終了
 
-
-/* ▼▼▼ タイマー機能 ▼▼▼ */
-
-// タイマーをリセットして開始（フェーズが変わるたびに呼ぶ）
 function resetTimer() {
     clearInterval(state.timerInterval);
-    state.timeLeft = 30; // 制限時間（秒）
+    state.timeLeft = 30; 
     updateTimerDisplay();
 
-    // 1秒ごとに減らす
     state.timerInterval = setInterval(() => {
         state.timeLeft--;
         updateTimerDisplay();
 
-        if (state.timeLeft <= 0) {
+        const timeLimit = (state.gameMode === 'ONLINE') ? -2 : 0;
+
+        if (state.timeLeft <= timeLimit) {
             clearInterval(state.timerInterval);
-            handleTimeout(); // 時間切れの処理
+            handleTimeout(); 
         }
     }, 1000);
 }
 
-// 画面表示の更新
 function updateTimerDisplay() {
     const el = document.getElementById('timer-display');
     if (!el) return;
-    el.innerText = state.timeLeft;
     
-    // 残り10秒を切ったら赤くする
+    el.innerText = Math.max(0, state.timeLeft);
+    
     if (state.timeLeft <= 10) {
         el.classList.add('danger');
     } else {
@@ -1819,56 +1926,40 @@ function updateTimerDisplay() {
     }
 }
 
-// 時間切れになった時の自動操作
 function handleTimeout() {
-    // オンラインの場合、自分の操作手番でなければ勝手に動かない
     if (state.gameMode === 'ONLINE') {
         const isMyTurn = (state.phase === 'DEFENDER_MOVE') 
-            ? (state.turnPlayer.id !== myPlayerId) // 防御フェーズなら防御側（＝ターンプレイヤーじゃない方）
-            : (state.turnPlayer.id === myPlayerId); // 攻撃フェーズなら攻撃側
+            ? (state.turnPlayer.id !== myPlayerId) 
+            : (state.turnPlayer.id === myPlayerId);
 
-        if (!isMyTurn) return; // 相手のタイムアウトなら何もしない（相手が送信してくるのを待つ）
+        if (!isMyTurn) return; 
     }
     
-    // CPU思考中なら無視
     if (state.isCpuThinking) return;
-
     showToast("TIME UP!");
-
-    // フェーズごとの強制操作
+    
     if (state.phase === 'SELECT_CARD') {
-        // 勝手に一番左のカードを選ぶ
         uiSelectCard(2);
-    } 
-    else if (state.phase === 'SELECT_ROTATION') {
-        // 回転可能な方向があれば、最初に見つかったものに決定する
-        // なければキャンセルしてカード選択に戻る（が、無限ループ防ぐため適当に処理）
-        if (state.validDirections.length > 0) {
-            // 強制決定
+    } else if (state.phase === 'SELECT_ROTATION') {
+         if (state.validDirections.length > 0) {
             const valid = state.validDirections[0];
             state.hiddenRotation = { indices: valid.indices };
-            
             if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: valid.indices });
-            
             state.phase = 'DEFENDER_MOVE';
-            updateTurnVisuals(); // ここでタイマーもリセットされる
+            updateTurnVisuals(); 
         } else {
-            // 万が一置けなかったらカード選択に戻す
             state.phase = 'SELECT_CARD';
             resetTimer(); 
         }
-    } 
-    else if (state.phase === 'DEFENDER_MOVE') {
-        // 移動せずに確定する
+    } else if (state.phase === 'DEFENDER_MOVE') {
         uiConfirm();
     }
 }
 
-// 自分の操作を送信する関数
 function sendAction(type, data) {
     if (state.gameMode !== 'ONLINE') return;
     
-    set(ref(db, roomId + "/action"), {
+    push(ref(db, roomId + "/action"), {
         type: type,
         sender: myPlayerId,
         ...data,
@@ -1876,9 +1967,71 @@ function sendAction(type, data) {
     });
 }
 
-/* ▲▲▲ オンライン機能ここまで ▲▲▲ */
+window.openSettings = function() {
+    document.getElementById('settings-modal').classList.add('active');
+};
+window.closeSettings = function() {
+    document.getElementById('settings-modal').classList.remove('active');
+};
+window.changeVolume = function(val) {
+    bgm.volume = parseFloat(val);
+    if(bgm.paused) bgm.play().catch(()=>{});
+};
+window.openSecretModal = function() {
+    document.getElementById('secret-modal').classList.add('active');
+    setTimeout(() => {
+        document.getElementById('room-input').focus();
+    }, 100);
+};
+window.closeSecretModal = function() {
+    document.getElementById('secret-modal').classList.remove('active');
+};
 
-/* ▼▼▼ 追加：HTMLのボタンから関数を呼べるようにする設定 ▼▼▼ */
+function startOnlineListener() {
+    const actionsRef = ref(db, roomId + '/action');
+    
+    onChildAdded(actionsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        if (data.sender === myPlayerId) return;
+
+        if (data.type === 'SELECT_CARD') {
+            uiSelectCard(data.value, true); 
+            showToast("相手がカードを選択中...");
+        } else if (data.type === 'ROTATE') {
+            state.hiddenRotation = { indices: data.indices };
+            state.phase = 'DEFENDER_MOVE';
+            state.tempRotationStart = null;
+            state.validDirections = [];
+            showToast("ROTATION SET!");
+            updateTurnVisuals();
+            resetTimer(); 
+        } else if (data.type === 'MOVE') {
+            state.defenderMoves = data.moves;
+            showToast("相手が移動しました");
+            startTurnResolution();
+        } else if (data.type === 'EMOTE') {
+            sendEmote(data.value, data.sender);
+        }
+    });
+
+    const roomRef = ref(db, roomId);
+    onValue(roomRef, (snapshot) => {
+        // ★ここ修正！ && !state.winner を追加してください
+        if (state.gameMode === 'ONLINE' && !snapshot.exists() && !state.winner) {
+            if (roomId) { 
+                alert("対戦が終了しました（相手が退出しました）");
+                off(ref(db, roomId + '/action'));
+                off(ref(db, roomId));
+                roomId = null; 
+                state.gameMode = 'TITLE'; 
+                backToTitle();
+            }
+        }
+    });
+}
+
 window.startGame = startGame;
 window.uiSelectCard = uiSelectCard;
 window.uiConfirm = uiConfirm;
@@ -1887,86 +2040,27 @@ window.backToTitle = backToTitle;
 window.toggleEmoteMenu = toggleEmoteMenu;
 window.sendEmote = sendEmote;
 
-// ▼▼▼ 追加：画面から離れたらBGMを止める処理 ▼▼▼
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        // 画面が見えなくなったら（タブ切り替えやホームに戻った時）
         bgm.pause();
     } else {
-        // 画面に戻ってきた時
-        // 「タイトル画面ではない」かつ「リザルト画面ではない」時だけ再開する
         const isTitleHidden = document.getElementById('title-screen').style.display === 'none';
         const isResultHidden = document.getElementById('result-screen').style.display === 'none';
-        
-        // ゲーム中ならBGM再開
         if (isTitleHidden && isResultHidden) {
             bgm.play().catch(e => console.log("BGM再開エラー:", e));
         }
     }
 });
-// ▲▲▲ 追加ここまで ▲▲▲
 
-
-// ▼▼▼ 追加：URLから合言葉を読み取る処理 ▼▼▼
 window.addEventListener('DOMContentLoaded', () => {
-    // URLの「?room=...」の部分を見る
     const params = new URLSearchParams(window.location.search);
     const inviteRoom = params.get('room');
-
     if (inviteRoom) {
-        // 合言葉欄にセットする
         document.getElementById('room-input').value = inviteRoom;
-        
-        // 名前入力欄にフォーカスを当てる（すぐに名前を入れて始められるように）
         document.getElementById('username-input').focus();
-        
-        // わかりやすいようにメッセージを出す
-        showToast("招待コードを読み込みました！名前を入力してSTART！");
+        showToast("招待コードを読み込みました！");
     }
 });
-
-/* --- 新しいUI用の関数 --- */
-
-// 設定画面を開く
-window.openSettings = function() {
-    document.getElementById('settings-modal').classList.add('active');
-    // 入力欄に今の値を入れておく
-    // (既にHTMLのinputに入力された値は保持されていますが、念のため)
-};
-
-// 設定画面を閉じる
-window.closeSettings = function() {
-    document.getElementById('settings-modal').classList.remove('active');
-    // ここで名前などを保存する処理を入れても良いですが、
-    // inputの値はそのまま残るので、startGame時に読み込まれます。
-};
-
-// 音量を変える
-window.changeVolume = function(val) {
-    bgm.volume = parseFloat(val);
-    // プレビューとして再生されていない場合はちょっと鳴らしてもいいかも（お好みで）
-    if(bgm.paused) bgm.play().catch(()=>{});
-};
-
-// 合言葉画面を開く（ONLINEボタン用）
-window.openSecretModal = function() {
-    document.getElementById('secret-modal').classList.add('active');
-    // すぐに入力できるようにフォーカス
-    setTimeout(() => {
-        document.getElementById('room-input').focus();
-    }, 100);
-};
-
-// 合言葉画面を閉じる
-window.closeSecretModal = function() {
-    document.getElementById('secret-modal').classList.remove('active');
-};
-
-// オンライン開始ボタン（合言葉画面のGOボタンから呼ばれる）
-// 既存の window.startOnlineGame を少し修正する必要はありません。
-// HTML側で onclick="startOnlineGame()" としているので、そのまま動きます。
-// ただし、もし接続に成功したらモーダルを閉じたいので、既存の startOnlineGame の成功時処理に追加が必要です。
-
 
 </script>
 </body>
