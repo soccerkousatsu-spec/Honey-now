@@ -479,7 +479,8 @@ let state = {
     timerInterval: null,
     lastEmoteTime: 0,
     previewRotation: null,
-    showUnitGuidance: false
+    showUnitGuidance: false,
+    pendingActions: []
 
 };
 
@@ -500,16 +501,29 @@ function startGame(mode) {
     const inputName = document.getElementById('username-input').value.trim();
     const inputComment = document.getElementById('comment-input').value.trim();
 
-    const p1Name = inputName || (mode === 'PvE' ? "PLAYER" : "P1");
-    const p1Comment = inputComment || "..."; 
-    const p2Name = mode === 'PvE' ? "CPU" : "P2";
-    const p2Comment = "..."; 
+    // ★★★ 修正: PvEでもランダムにIDを決める ★★★
+    if (mode === 'PvE') {
+        myPlayerId = Math.random() < 0.5 ? 1 : 2; // 50%で1(青)か2(赤)
+    } else {
+        myPlayerId = 1; // タイトル画面上の仮置き
+    }
+
+    // 名前設定：自分が1ならP1が自分、自分が2ならP2が自分
+    const p1Name = (myPlayerId === 1) ? (inputName || "PLAYER") : "CPU";
+    const p1Comment = (myPlayerId === 1) ? (inputComment || "...") : "...";
+    
+    const p2Name = (myPlayerId === 2) ? (inputName || "PLAYER") : "CPU";
+    const p2Comment = (myPlayerId === 2) ? (inputComment || "...") : "...";
 
     document.getElementById('title-screen').style.display = 'none';
 
-    const myColorName = "BLUE";
-    const myColorCode = COLORS.p1;
-    const enemyName = p2Name;
+    // 自分の色情報をセット
+    let myColorName, myColorCode, enemyName;
+    if (myPlayerId === 1) {
+        myColorName = "BLUE"; myColorCode = COLORS.p1; enemyName = p2Name;
+    } else {
+        myColorName = "RED"; myColorCode = COLORS.p2; enemyName = p1Name;
+    }
 
     playStartAnimation(myColorName, myColorCode, enemyName, () => {
         
@@ -520,8 +534,7 @@ function startGame(mode) {
 
         initBoardUnits();
         state.turn = 1;
-        state.turnPlayer = P1;
-        state.turnPlayer.nameDisplay = p1Name; 
+        state.turnPlayer = P1; // 必ず青(P1)から開始
         state.phase = 'SELECT_CARD';
         state.winner = null;
         state.isCpuThinking = false;
@@ -529,14 +542,19 @@ function startGame(mode) {
         updateTurnVisuals();
         showToast("GAME START!");
         
-        triggerPhaseGuidance(); 
-        
         resizeCanvas();
         gameLoop();
-
         resetTimer(); 
+
+        // ★★★ 追加: もし自分が赤(P2)なら、開幕すぐにCPU(青)に思考させる ★★★
+        if (mode === 'PvE' && myPlayerId === 2) {
+             triggerPhaseGuidance(); // ガイドは出すが
+             triggerCpuAction();     // すぐCPUが動く
+        } else {
+             triggerPhaseGuidance(); 
+        }
     });
-} // startGame 終了
+}
 
 function playStartAnimation(myColorName, myColorCode, enemyName, callback) {
     const screen = document.getElementById('ready-screen');
@@ -591,8 +609,56 @@ function gameLoop() {
         u.animQ += (u.q - u.animQ) * 0.2;
         u.animR += (u.r - u.animR) * 0.2;
     });
+
+    // ★★★ 追加：溜まったアクションをここで消化します ★★★
+    processPendingActions();
+
     draw();
     if (!state.winner) requestAnimationFrame(gameLoop);
+}
+
+// ★★★ 新規追加：アクションを安全なタイミングで取り出す関数 ★★★
+function processPendingActions() {
+    // 1. 処理待ちがなければ何もしない
+    if (!state.pendingActions || state.pendingActions.length === 0) return;
+
+    // 2. 「今、処理していいタイミングか？」をチェック
+    // カットイン中(TURN_CUTIN)、アニメーション中(ANIMATION)、CPU思考中、勝負がついた後は処理しない
+    if (state.phase === 'TURN_CUTIN' || 
+        state.phase === 'ANIMATION' || 
+        state.isCpuThinking || 
+        state.winner) {
+        return; 
+    }
+
+    // 3. 安全なら、一番古いアクションを1つ取り出して実行
+    const data = state.pendingActions.shift(); // 先頭を取り出す
+    executeAction(data);
+}
+
+// ★★★ 新規追加：実際のアクション処理（元々リスナーにあった中身を移動） ★★★
+function executeAction(data) {
+    if (data.type === 'SELECT_CARD') {
+        uiSelectCard(data.value, true); 
+        showToast("相手がカードを選択中...");
+    
+    } else if (data.type === 'ROTATE') {
+        state.hiddenRotation = { indices: data.indices };
+        state.phase = 'DEFENDER_MOVE';
+        state.tempRotationStart = null;
+        state.validDirections = [];
+        showToast("ROTATION SET!");
+        updateTurnVisuals();
+        resetTimer(); 
+
+    } else if (data.type === 'MOVE') {
+        state.defenderMoves = data.moves;
+        showToast("相手が移動しました");
+        startTurnResolution();
+    
+    } else if (data.type === 'EMOTE') {
+        sendEmote(data.value, data.sender);
+    }
 }
 
 function draw() {
@@ -779,12 +845,10 @@ function updateTurnVisuals() {
     indicator.innerText = p.name; 
     indicator.style.color = p.color;
 
-    // ★追加: 自分の操作ターンかどうかを判定
+    // ★★★ 修正点: PvEでもIDを使って正しく判定するように統一 ★★★
     let isMyTurn = false;
-    if (state.gameMode === 'PvE') {
-        isMyTurn = (p.id === 1); // PvEならP1が自分
-    } else if (state.gameMode === 'ONLINE') {
-        isMyTurn = (p.id === myPlayerId); // OnlineならIDで判定
+    if (state.gameMode === 'PvE' || state.gameMode === 'ONLINE') {
+        isMyTurn = (p.id === myPlayerId); 
     } else {
         isMyTurn = true; // Title画面など
     }
@@ -807,10 +871,10 @@ function updateTurnVisuals() {
         return; // これ以上の処理はしない
     }
 
-cardPanel.style.pointerEvents = 'auto';
+    cardPanel.style.pointerEvents = 'auto';
 
     if (state.phase === 'SELECT_CARD') {
-        // ★修正: 自分のターンの時だけパネルを出す
+        // 自分のターンの時だけパネルを出す
         if (isMyTurn) {
             badge.innerText = "PICK CARD";
             badge.style.color = "#fff";
@@ -823,7 +887,7 @@ cardPanel.style.pointerEvents = 'auto';
         mainBtn.style.display = 'none';
         
     } else if (state.phase === 'SELECT_ROTATION') {
-        badge.innerText = ""; // ★修正: "AIMING" を削除（空文字に）
+        badge.innerText = ""; 
         badge.style.color = "#fff";
 
         if (state.previewRotation) {
@@ -839,7 +903,7 @@ cardPanel.style.pointerEvents = 'auto';
         
     } else if (state.phase === 'DEFENDER_MOVE') {
         badge.innerText = "MOVE"; 
-        badge.style.color = "#fff"; // ★修正: 赤(#ff3333) から 白(#fff) に変更して安心感を出す
+        badge.style.color = "#fff"; 
 
         cardPanel.style.display = 'none'; mainBtn.style.display = 'block';
         
@@ -856,12 +920,18 @@ cardPanel.style.pointerEvents = 'auto';
     }
 }
 
+// ■■■ 修正箇所：triggerCpuAction ■■■
 async function triggerCpuAction() {
     if (state.gameMode !== 'PvE' || state.winner) return;
     
-    const isCpuAttacker = (state.turnPlayer.id === 2);
-    const isCpuDefender = (state.turnPlayer.id === 1 && state.phase === 'DEFENDER_MOVE');
+    // CPUのIDを特定（自分が1ならCPUは2、自分が2ならCPUは1）
+    const cpuId = (myPlayerId === 1) ? 2 : 1;
 
+    // CPUがやるべき番かチェック
+    const isCpuAttacker = (state.turnPlayer.id === cpuId);
+    const isCpuDefender = (state.turnPlayer.id !== cpuId && state.phase === 'DEFENDER_MOVE');
+
+    // 自分の番じゃないなら何もしない
     if (!isCpuAttacker && !isCpuDefender) return;
 
     state.isCpuThinking = true;
@@ -869,6 +939,7 @@ async function triggerCpuAction() {
 
     await wait(1000);
 
+    // ■■■ パターンA: カードを選ぶフェーズ（CPUが攻撃側のとき） ■■■
     if (state.phase === 'SELECT_CARD') {
         const bestAction = aiFindBestCardAction();
         const choice = bestAction.cardLen;
@@ -882,19 +953,25 @@ async function triggerCpuAction() {
             state.tempRotationStart = null;
             state.validDirections = [];
             showToast("CPUが回転をセットしました");
-            updateTurnVisuals();	
+            updateTurnVisuals();    
             triggerPhaseGuidance(); 
-        } else {
 
+            // ★★★ 修正点: ここにあった setTimeout を削除しました！ ★★★
+            // これでCPUは満足して停止し、プレイヤーの入力待ちになります。
+            
+        } else {
+            // 万が一の手
             const cards = [2,3,4];
             uiSelectCard(cards[0], true);
         }
     } 
+    // ■■■ パターンB: 駒を動かすフェーズ（CPUが防御側のとき） ■■■
     else if (state.phase === 'DEFENDER_MOVE') {
         let move1 = aiFindBestMove();
         if (move1) {
             state.defenderMoves.push({ unitId: move1.unitId, toIndex: move1.toIndex });
             
+            // 1体目を動かした状態で、2体目を探す
             const u = state.units.find(u => u.id === move1.unitId);
             const originalQ = u.q; const originalR = u.r;
             const targetHex = state.hexes[move1.toIndex];
@@ -904,6 +981,7 @@ async function triggerCpuAction() {
             if (move2) {
                 state.defenderMoves.push({ unitId: move2.unitId, toIndex: move2.toIndex });
             }
+            // 計算用の仮移動を戻す
             u.q = originalQ; u.r = originalR;
         }
 
@@ -1036,11 +1114,10 @@ async function triggerPhaseGuidance() {
 
 }
 
-
 function handleInput(x, y) {
-    // TURN_CUTIN を追加
     if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.phase === 'TURN_CUTIN' || state.winner || state.isCpuThinking) return;
 
+    // オンラインの手番チェック
     if (state.gameMode === 'ONLINE') {
         if (state.phase === 'DEFENDER_MOVE') {
             const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
@@ -1053,7 +1130,6 @@ function handleInput(x, y) {
     const coords = pixelToHex(x, y);
     const hexIndex = getHexIndex(coords.q, coords.r);
     
-    // ■ 修正点1：背景（盤面外）をクリックした時のキャンセル処理を追加
     if (hexIndex === -1) {
         if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
             state.previewRotation = null;
@@ -1068,8 +1144,8 @@ function handleInput(x, y) {
     const clickedHex = state.hexes[hexIndex];
 
     if (state.phase === 'SELECT_ROTATION') {
+        // ... (回転選択のロジックは変更なし) ...
         if (!state.tempRotationStart) {
-            // まだ軸が決まっていない時（最初のタップ）
             state.tempRotationStart = clickedHex;
             calcValidDirections(clickedHex);
             if (state.validDirections.length === 0) {
@@ -1078,9 +1154,6 @@ function handleInput(x, y) {
             }
         
         } else {
-            // 軸がすでに決まっている時（2回目のタップ）
-            
-            // ■ 修正点2：軸（中心）をもう一度タップしたらキャンセルする
             if (state.tempRotationStart === clickedHex) {
                 state.previewRotation = null;
                 state.tempRotationStart = null;
@@ -1099,7 +1172,6 @@ function handleInput(x, y) {
                 updateTurnVisuals(); 
             } 
             else {
-                // 全く関係ないマスをタップした時のキャンセル
                 state.previewRotation = null;
                 state.tempRotationStart = null;
                 state.validDirections = [];
@@ -1109,9 +1181,13 @@ function handleInput(x, y) {
         }
     }
 
+    // ★★★ ここが重要な修正箇所 ★★★
     else if (state.phase === 'DEFENDER_MOVE') {
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        if (state.gameMode === 'PvE' && defenderId === 2) return;
+        
+        // 「防御担当プレイヤー」が「自分」でないなら操作させない
+        // (PvEで自分が赤(2)のとき、defenderIdが2になっても、myPlayerIdも2なので操作可能になる！)
+        if (defenderId !== myPlayerId) return;
 
         const unit = getUnitAt(clickedHex.q, clickedHex.r);
         
@@ -1273,16 +1349,18 @@ async function nextTurn() {
     state.selectedCard = null;
     state.hiddenRotation = null; 
     
-   document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
     
     updateTurnVisuals(); 
     resetTimer(); 
 
-    if (state.gameMode !== 'ONLINE' || state.turnPlayer.id === myPlayerId) {
+    // ★★★ 修正: 自分のターンの時だけガイドを出す ★★★
+    if (state.turnPlayer.id === myPlayerId) {
         triggerPhaseGuidance();
     }
 
-    if (state.gameMode === 'PvE' && state.turnPlayer.id === 2) {
+    // ★★★ 修正: 相手(CPU)のターンならCPUを起動 ★★★
+    if (state.gameMode === 'PvE' && state.turnPlayer.id !== myPlayerId) {
         triggerCpuAction();
     }
 }
@@ -1421,22 +1499,35 @@ canvas.addEventListener('mousedown', onInputStart);
 
 resizeCanvas();
 
+// ■■■ 修正箇所：AI関連の関数群（一番下に追加・置き換え） ■■■
+
+// ■■■ 修正箇所：AI関連の関数群（一番下をこれに総入れ替えしてください） ■■■
+
+// 1. 最適なカードと回転を決める脳みそ
 function aiFindBestCardAction() {
     let bestScore = -Infinity;
     let bestAction = { cardLen: 3, indices: null }; 
+    
+    // エラー防止の保険：とりあえず有効な回転を1つ確保しておく
+    const fallbackDir = state.validDirections && state.validDirections.length > 0 ? state.validDirections[0] : null;
+    if (fallbackDir) {
+        bestAction.indices = fallbackDir.indices;
+    }
 
     const cardLens = [2, 3, 4];
     
+    // 2,3,4連すべてのパターンをシミュレーション
     for (let len of cardLens) {
         for (let i = 0; i < state.hexes.length; i++) {
             const h = state.hexes[i];
             for (let dirIdx = 0; dirIdx < DIRECTIONS.length; dirIdx++) {
                 const indices = getLineIndices(h, len, dirIdx);
-                if (!indices) continue;
+                if (!indices) continue; // 盤面外なら無視
 
                 const simUnits = aiSimulateRotation(indices);
                 const score = aiEvaluateBoard(simUnits);
                 
+                // 少しランダム性を入れて人間味を出す
                 if (score > bestScore + (Math.random() * 5)) { 
                     bestScore = score;
                     bestAction = { cardLen: len, indices: indices };
@@ -1444,27 +1535,46 @@ function aiFindBestCardAction() {
             }
         }
     }
+    
+    // 保険：もし計算結果がおかしくても、止まらないように適当な手を探す
+    if (!bestAction.indices) {
+        for (let i = 0; i < state.hexes.length; i++) {
+            const valid = getLineIndices(state.hexes[i], 3, 0);
+            if (valid) {
+                bestAction.indices = valid;
+                bestAction.cardLen = 3;
+                break;
+            }
+        }
+    }
+
     return bestAction;
 }
 
+// 2. 最適な移動先を決める脳みそ（★ここが消えていました！）
 function aiFindBestMove(excludeUnitId = null) {
     let bestScore = -Infinity;
     let bestMove = null;
 
-    const cpuUnits = state.units.filter(u => u.owner === 2);
+    // 自分の色（CPUの色）を判定
+    const cpuId = (myPlayerId === 1) ? 2 : 1;
+    const cpuUnits = state.units.filter(u => u.owner === cpuId);
     
+    // すでに誰かがいる場所や、移動予約済みの場所をリストアップ
     const occupied = new Set(state.units.map(u => getHexIndex(u.q, u.r)));
     state.defenderMoves.forEach(m => occupied.add(m.toIndex));
 
     for (let u of cpuUnits) {
-        if (excludeUnitId && u.id === excludeUnitId) continue;
+        if (excludeUnitId && u.id === excludeUnitId) continue; // さっき動かした駒は除外
 
         const currentIdx = getHexIndex(u.q, u.r);
         
+        // 全マスへ移動してみるシミュレーション
         for (let i = 0; i < state.hexes.length; i++) {
-            if (occupied.has(i)) continue;
-            if (i === currentIdx) continue;
+            if (occupied.has(i)) continue; // 誰かいる
+            if (i === currentIdx) continue; // 今いる場所
 
+            // 仮想的に動かしてみる
             const simUnits = state.units.map(unit => ({ ...unit }));
             const targetUnit = simUnits.find(unit => unit.id === u.id);
             const targetHex = state.hexes[i];
@@ -1473,6 +1583,7 @@ function aiFindBestMove(excludeUnitId = null) {
 
             let score = aiEvaluateBoard(simUnits);
 
+            // ダメージゾーン（端っこ）には極力行かないようにする
             if (targetHex.isEdge && score < 500) { 
                  score -= 1000;
             }
@@ -1486,10 +1597,13 @@ function aiFindBestMove(excludeUnitId = null) {
     return bestMove;
 }
 
+// 3. 回転したらどうなるか計算する補助脳みそ
 function aiSimulateRotation(indices) {
-    const simUnits = state.units.map(u => ({ ...u })); 
+    let simUnits = state.units.map(u => ({ ...u }));
+    
     let unitsOnLine = [];
     indices.forEach((hexIdx, linePos) => {
+        if (!state.hexes[hexIdx]) return;
         const h = state.hexes[hexIdx];
         const u = simUnits.find(unit => unit.q === h.q && unit.r === h.r);
         if(u) unitsOnLine.push({ u, linePos });
@@ -1497,27 +1611,34 @@ function aiSimulateRotation(indices) {
     
     const len = indices.length;
     unitsOnLine.forEach(item => {
-        let nextLinePos = (len - 1) - item.linePos; 
-        let nextHex = state.hexes[indices[nextLinePos]];
-        item.u.q = nextHex.q;
-        item.u.r = nextHex.r;
+        let nextLinePos = (len - 1) - item.linePos;
+        if (indices[nextLinePos] !== undefined && state.hexes[indices[nextLinePos]]) {
+            let nextHex = state.hexes[indices[nextLinePos]];
+            item.u.q = nextHex.q;
+            item.u.r = nextHex.r;
+        }
     });
+
     return simUnits;
 }
 
+// 4. 盤面の良し悪しを点数化する評価脳みそ
 function aiEvaluateBoard(simUnits) {
     let score = 0;
-    const cpuId = 2;
-    const playerId = 1;
+    
+    const cpuId = (myPlayerId === 1) ? 2 : 1;
+    const playerId = myPlayerId;
 
     simUnits.forEach(u => {
         const hIdx = getHexIndex(u.q, u.r);
+        // ダメージゾーンにいると減点
         if (hIdx !== -1 && state.hexes[hIdx].isEdge) {
             if (u.owner === cpuId) score -= 2000;   
             if (u.owner === playerId) score += 300; 
         }
     });
 
+    // 三角形（トライアングルアタック）の評価
     [cpuId, playerId].forEach(owner => {
         const myUnits = simUnits.filter(u => u.owner === owner);
         if (myUnits.length === 3) {
@@ -1533,16 +1654,11 @@ function aiEvaluateBoard(simUnits) {
                 });
 
                 if (owner === cpuId) {
-                    if (hits > 0) {
-                        score += 5000 * hits;
-                    } else {
-                        score -= 200;
-                    }
+                    if (hits > 0) score += 5000 * hits; // 攻撃ヒットは大加点
+                    else score -= 200; // 空振りは隙になるので少し減点
                 } else {
-                    score -= 500; 
-                    if (hits > 0) {
-                        score -= 20000 * hits; 
-                    }
+                    score -= 500; // 敵に三角形を作られるのは危険
+                    if (hits > 0) score -= 20000 * hits; // 自分が撃たれるのは最悪
                 }
             }
         }
@@ -1550,6 +1666,7 @@ function aiEvaluateBoard(simUnits) {
 
     return score;
 }
+
 
 function showResult(winnerName) {
     const screen = document.getElementById('result-screen');
@@ -1569,10 +1686,14 @@ function showResult(winnerName) {
     }, 10);
 }
 
+// ■■■ 修正箇所：backToTitle ■■■
 function backToTitle() {
     bgm.pause();
     bgm.currentTime = 0;
 
+    state.pendingActions = []; 
+
+    state.isCpuThinking = false;
     document.getElementById('settings-modal').classList.remove('active');
     document.getElementById('secret-modal').classList.remove('active');
 
@@ -1926,16 +2047,36 @@ function updateTimerDisplay() {
     }
 }
 
+// 【修正】handleTimeout関数を書き換え
 function handleTimeout() {
-    if (state.gameMode === 'ONLINE') {
-        const isMyTurn = (state.phase === 'DEFENDER_MOVE') 
-            ? (state.turnPlayer.id !== myPlayerId) 
-            : (state.turnPlayer.id === myPlayerId);
+    // 1. CPU思考中なら何もしない
+    if (state.isCpuThinking) return;
 
-        if (!isMyTurn) return; 
+    // 2. オンラインの場合の厳密なチェック
+    if (state.gameMode === 'ONLINE') {
+        // 現在のフェーズで「操作権」を持っているのは誰か？
+        let currentActorId;
+        
+        if (state.phase === 'SELECT_CARD') {
+            currentActorId = state.turnPlayer.id; // 攻撃側
+        } else if (state.phase === 'SELECT_ROTATION') {
+            currentActorId = state.turnPlayer.id; // 攻撃側
+        } else if (state.phase === 'DEFENDER_MOVE') {
+            // 防御側（ターンプレイヤーじゃない方）
+            currentActorId = (state.turnPlayer.id === 1) ? 2 : 1;
+        } else {
+            // それ以外のフェーズ（演出中など）はタイムアウト判定しない
+            return;
+        }
+
+        // 自分に操作権がないなら、タイマーが0になっても何もしない（相手の通信を待つ）
+        if (currentActorId !== myPlayerId) {
+            console.log("Time up on client, but waiting for opponent...");
+            return;
+        }
     }
     
-    if (state.isCpuThinking) return;
+    // 以下は変更なし（タイムアップ時の自動操作）
     showToast("TIME UP!");
     
     if (state.phase === 'SELECT_CARD') {
@@ -1994,31 +2135,16 @@ function startOnlineListener() {
         const data = snapshot.val();
         if (!data) return;
 
+        // 自分のアクションは無視
         if (data.sender === myPlayerId) return;
 
-        if (data.type === 'SELECT_CARD') {
-            uiSelectCard(data.value, true); 
-            showToast("相手がカードを選択中...");
-        } else if (data.type === 'ROTATE') {
-            state.hiddenRotation = { indices: data.indices };
-            state.phase = 'DEFENDER_MOVE';
-            state.tempRotationStart = null;
-            state.validDirections = [];
-            showToast("ROTATION SET!");
-            updateTurnVisuals();
-            resetTimer(); 
-        } else if (data.type === 'MOVE') {
-            state.defenderMoves = data.moves;
-            showToast("相手が移動しました");
-            startTurnResolution();
-        } else if (data.type === 'EMOTE') {
-            sendEmote(data.value, data.sender);
-        }
+        // ★★★ 修正点：すぐ実行せず、キュー（待ち行列）に追加するだけにする ★★★
+        state.pendingActions.push(data);
     });
 
+    // ▼ 退出検知のロジックはそのまま維持
     const roomRef = ref(db, roomId);
     onValue(roomRef, (snapshot) => {
-        // ★ここ修正！ && !state.winner を追加してください
         if (state.gameMode === 'ONLINE' && !snapshot.exists() && !state.winner) {
             if (roomId) { 
                 alert("対戦が終了しました（相手が退出しました）");
