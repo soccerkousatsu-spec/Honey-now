@@ -9,17 +9,37 @@
 /* 全体レイアウト */
 body {
     margin: 0; padding: 0;
-    background-color: #050505;
+    
     color: #fff;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     display: flex; flex-direction: column;
     position: fixed; width: 100%; height: 100svh;
     touch-action: none; -webkit-text-size-adjust: 100%;
-    overflow: hidden; transition: background-color 0.5s ease;
+    overflow: hidden; 
 
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none; 
+}
+
+/* 背景画像（雲）のレイヤー：一番奥 */
+#bg-image-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2; /* 一番後ろ */
+    background-image: url('bg_game.png');
+    background-size: cover;
+    background-position: center;
+}
+
+/* 色（赤・青）のレイヤー：画像の手前 */
+#bg-color-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1; /* 画像よりは手前、ゲームよりは後ろ */
+    transition: background-color 1.0s ease; /* じわっと色が変わる */
+    
+    /* ★重要：これを設定すると、画像と色がカッコよく混ざります */
+    mix-blend-mode: overlay; 
+    opacity: 0.8; /* 色の濃さを調整（0.5〜1.0くらいで好みを探ってください） */
 }
 
 /* タイトル画面のレイアウト */
@@ -47,7 +67,7 @@ body {
 
 /* ロゴの設定 */
 #game-logo {
-    width: 60%; max-width: 450px; height: auto;
+    width: 100%; max-width: 450px; height: auto;
     margin-bottom: 10px;
     animation: floating 3s ease-in-out infinite;
     filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
@@ -87,7 +107,16 @@ body {
     cursor: pointer; transition: transform 0.1s;
     filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
 }
-.wooden-btn:active { transform: scale(0.95); }
+.wooden-btn:active {
+    /* 重要: 押した瞬間はアニメーションさせない（即座に反応させる） */
+    transition: none !important;
+    
+    /* 動きを大きくする（5px -> 8px） */
+    transform: scale(0.95) translateY(8px);
+    
+    /* 影を完全に消して、地面にめり込んだ感を出す */
+    filter: drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(0.7);
+}
 
 .wooden-btn .btn-text {
     font-size: 32px; font-weight: 900; color: #fff;
@@ -144,42 +173,160 @@ input[type=range] { width: 100%; margin: 10px 0 20px 0; cursor: pointer; }
 }
 
 /* ヘッダー・ゲームエリア */
+/* ↓↓↓ 修正後 ↓↓↓ */
 header {
-    padding: 20px; padding-top: max(40px, env(safe-area-inset-top));
+    /* ★変更点：ヘッダーを「浮かせ」て、盤面エリアを上まで広げる */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10; /* 盤面より手前（上）に表示する */
+
+    /* 以下はそのまま */
+    padding: 20px; 
+    padding-top: max(40px, env(safe-area-inset-top));
     background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
     display: flex; flex-direction: column; align-items: center; gap: 5px;
     pointer-events: none;
 }
+
 .score-board {
     display: flex; justify-content: center; align-items: flex-start;
     width: 100%; height: 60px; padding: 0 10px; box-sizing: border-box; position: relative;
 }
+/* ↓↓↓ 修正後 ↓↓↓ */
 .player-badge {
-    position: absolute; top: 5px; z-index: 100;
+    position: absolute;
+    /* 上からの位置 */
+    top: 10px; 
+    
+    z-index: 100;
     display: flex; flex-direction: column; justify-content: center;
     width: 85px; min-height: 40px; align-items: flex-start; text-align: left;
-    padding: 5px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); transition: all 0.3s;
+    padding: 5px 8px; border-radius: 6px; 
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+    backdrop-filter: blur(4px); transition: all 0.3s;
 }
-.player-badge.p1 { left: 0; box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) inset; border-color: rgba(0, 204, 255, 0.4); }
-.player-badge.p2 { right: 0; box-shadow: 0 0 8px rgba(255, 51, 102, 0.2) inset; border-color: rgba(255, 51, 102, 0.4); }
-.badge-name { font-size: 13px; font-weight: 900; letter-spacing: 0.5px; width: 100%; word-break: break-word; line-height: 1.1; }
+
+/* 左のプレイヤー（青）の位置 */
+.player-badge.p1 { 
+    left: -5px; /* 左端からの距離 */
+    box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) inset; 
+    border-color: rgba(0, 204, 255, 0.4); 
+}
+
+/* 右のプレイヤー（赤）の位置 */
+.player-badge.p2 { 
+    right: 35px; /* 右端からの距離 */
+    box-shadow: 0 0 8px rgba(255, 51, 102, 0.2) inset; 
+    border-color: rgba(255, 51, 102, 0.4); 
+}
+
+.badge-name { 
+    font-size: 13px; font-weight: 900; letter-spacing: 0.5px; 
+    width: 100%; word-break: break-word; line-height: 1.1; 
+    margin-bottom: 5px; 
+}
+
 .badge-comment { font-size: 9px; color: #ccc; word-break: break-word; line-height: 1.2; opacity: 0.9; }
 
-#turn-indicator { font-size: 40px; font-weight: 900; text-shadow: 0 0 20px currentColor; letter-spacing: 4px; line-height: 1; margin: 0 10px; }
-#phase-badge { position: relative; left: 3px; height: 24px; line-height: 24px; margin-bottom: 5px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 8px; opacity: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.8); width: 100%; text-align: center; }
-#card-info { position: relative; left: 5px; color: #ffd700; height: 40px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+/* ↓↓↓ 修正後 ↓↓↓ */
+#turn-indicator {
+    /* マージンで位置を微調整（上、左右、下） */
+    margin: 0px 0 0 0; 
+    margin-right: 30px;
+    font-size: 40px; font-weight: 900; 
+    text-shadow: 0 0 20px currentColor; 
+    letter-spacing: 4px; line-height: 1; 
+}
+#phase-badge { position: relative; left: -15px; height: 24px; line-height: 24px; margin-bottom: 5px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 8px; opacity: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.8); width: 100%; text-align: center; transform: translate(0px, -6px);}
+#card-info { position: relative; left: 5px; color: #ffd700; height: 40px; display: flex; align-items: center; justify-content: center; margin-top: 10px; margin-right: 35px}
 #card-info svg { height: 100%; width: auto; fill: currentColor; }
 
-#timer-display { position: absolute; top: 80px; right: 180px; font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.8); font-family: 'Courier New', Courier, monospace; z-index: 100; transition: color 0.3s; }
+/* ↓↓↓ 修正後 ↓↓↓ */
+#timer-display {
+    position: absolute;
+    
+    /* 上からの位置 */
+    top: 80px; 
+    
+    /* これで画面の左右中央になります */
+    left: 46%;
+    transform: translateX(-50%);
+    
+    font-size: 30px; font-weight: 900; color: #fff; 
+    text-shadow: 0 0 10px rgba(0,0,0,0.8); 
+    font-family: 'Courier New', Courier, monospace; 
+    z-index: 100; transition: color 0.3s;
+}
+
 #timer-display.danger { color: #ff3333; text-shadow: 0 0 15px #ff0000; animation: pulse 0.5s infinite alternate; }
 @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
 
-#game-area { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+/* ↓↓↓ 修正後 ↓↓↓ */
+#game-area {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+
+    /* ★追加：下に余白を作って、中心点を上にずらす */
+    padding-bottom: 0px; 
+padding-top: 40px;
+    box-sizing: border-box; /* 余白を含めてサイズ計算する設定 */
+}
+
 canvas { filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); position: relative; top: -2px; }
 
-footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 0; border-top: 1px solid rgba(255,255,255,0.1); }
-#action-area { width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; }
+/* ↓↓↓ 修正後 ↓↓↓ */
+footer {
+    position: fixed; bottom: 0; left: 0; width: 100%; z-index: 100;
+    box-sizing: border-box;
+    padding: 20px;
+    padding-bottom: max(50px, env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 0;
+
+    /* ★変更：フッター自体は「透明」にする（グラデーションもなし） */
+    background: none; 
+    backdrop-filter: none;
+    border-top: none; 
+
+    pointer-events: none;
+}
+
+/* ★変更：この「before」で【背景】と【線】の両方を作ります */
+footer::before {
+    content: "";
+    position: absolute;
+    
+    /* 上から20px下げた位置からスタート */
+    top: 10px; 
+    left: 0;
+    
+    /* 画面下まではみ出すように大きく確保 */
+    width: 100%;
+    height: 100%; 
+    
+    /* ★ここで「ベタ塗りの黒（半透明）」を指定 */
+    background: rgba(0, 0, 0, 0.5);
+    
+    /* その黒背景の一番上に「白い線」を引く */
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    
+    /* ボタンより奥に表示 */
+    z-index: -1; 
+}
+
+/* ボタンエリア（変更なし） */
+#action-area {
+    width: 100%; height: 80px; 
+    display: flex; justify-content: center; align-items: center;
+    pointer-events: auto; 
+}
+
 #card-panel { width: 100%; display: flex; justify-content: center; gap: 15px; }
 .card { background: linear-gradient(145deg, #2a2a2a, #333); border: 2px solid #555; color: #aaa; padding: 5px 0; width: 30%; display: flex; justify-content: center; align-items: center; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.2s; position: relative; z-index: 1;}
 .card svg { height: 28px; width: auto; fill: currentColor; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); max-width: 95%; position: relative; left: 5px; }
@@ -187,7 +334,19 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
 
 #main-btn { font-family: 'Arial Black', sans-serif; font-size: 24px; width: 100%; padding: 18px; background: linear-gradient(90deg, #ff8c00, #ff0080); color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4); transition: transform 0.1s; }
 #main-btn:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
-#main-btn:active { transform: scale(0.98); }
+#main-btn:active {
+    /* 重要: 即座に反応させる */
+    transition: none !important;
+    
+    /* 深く沈める */
+    transform: translateY(6px);
+    
+    /* 外の影を消し、代わりに「内側の影」をつけて凹みを表現する */
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.5) !important;
+    
+    /* 暗くする */
+    filter: brightness(0.7);
+}
 
 #result-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
 #result-screen.show { opacity: 1; pointer-events: auto; }
@@ -249,6 +408,8 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
     </style>
 </head>
 <body>
+    <div id="bg-image-layer"></div>
+    <div id="bg-color-layer"></div>
 
 <div id="result-screen" style="display: none;">
     <div class="result-label">WINNER</div>
@@ -261,16 +422,16 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
 <div id="title-screen">
     <div class="bg-layer"></div>
 
-    <img src="icon_gear.png" id="gear-btn" onclick="openSettings()">
+<img src="icon_gear.png" id="gear-btn" onclick="playSe('title'); openSettings()">
 
     <img src="logo.png" id="game-logo" alt="HONEY NOW">
 
     <div class="menu-container">
-        <div class="wooden-btn" onclick="openSecretModal()">
+<div class="wooden-btn" onclick="playSe('title'); openSecretModal()">
             <span class="btn-text">ONLINE</span>
         </div>
 
-        <div class="wooden-btn" onclick="startGame('PvE')">
+     <div class="wooden-btn" onclick="playSe('title'); startGame('PvE')">
             <span class="btn-text">CPU</span>
         </div>
     </div>
@@ -285,10 +446,23 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
             <label>COMMENT</label>
             <input type="text" id="comment-input" placeholder="..." maxlength="30">
             
-            <label>BGM VOLUME</label>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.1" oninput="changeVolume(this.value)">
-            
-            <button class="close-btn" onclick="closeSettings()">OK</button>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+    <label style="margin:0;">BGM VOLUME</label>
+    <div id="mute-bgm-btn" onclick="toggleMute('bgm')" style="font-weight:bold; color:#00ccff; cursor:pointer; font-size:14px; border:1px solid #00ccff; padding:2px 8px; border-radius:4px;">
+        🔊 ON
+    </div>
+</div>
+<input type="range" id="bgm-slider" min="0" max="1" step="0.1" value="0.1" oninput="changeBgmVolume(this.value)">
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+    <label style="margin:0;">SE VOLUME</label>
+    <div id="mute-se-btn" onclick="toggleMute('se')" style="font-weight:bold; color:#ff3366; cursor:pointer; font-size:14px; border:1px solid #ff3366; padding:2px 8px; border-radius:4px;">
+        🔊 ON
+    </div>
+</div>
+<input type="range" id="se-slider" min="0" max="1" step="0.1" value="0.5" oninput="changeSeVolume(this.value)">
+
+<button class="close-btn" onclick="playSe('title'); closeSettings()">OK</button>
         </div>
     </div>
 
@@ -299,11 +473,11 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
             
             <input type="text" id="room-input" placeholder="ENTER WORD" maxlength="10">
             
-            <div class="wooden-btn small" onclick="startOnlineGame()">
+<div class="wooden-btn small" onclick="playSe('title'); startOnlineGame()">
                 <span class="btn-text">GO!</span>
             </div>
             
-            <button class="text-btn" onclick="closeSecretModal()">CANCEL</button>
+<button class="text-btn" onclick="playSe('title'); closeSecretModal()">CANCEL</button>
         </div>
     </div>
 </div>
@@ -360,13 +534,13 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
 <div id="emote-container">
     <div id="emote-menu">
         <div class="emote-item" onclick="sendEmote('😀')">😀</div>
-        <div class="emote-item" onclick="sendEmote('🤔')">🤔</div>
-        <div class="emote-item" onclick="sendEmote('😱')">😱</div>
-        <div class="emote-item" onclick="sendEmote('😎')">😎</div>
-        <div class="emote-item" onclick="sendEmote('👏')">👏</div>
-        <div class="emote-item" onclick="sendEmote('😡')">😡</div>
+        <div class="emote-item" onclick="playSe('battle');sendEmote('🤔')">🤔</div>
+        <div class="emote-item" onclick="playSe('battle');sendEmote('😱')">😱</div>
+        <div class="emote-item" onclick="playSe('battle');sendEmote('😎')">😎</div>
+        <div class="emote-item" onclick="playSe('battle');sendEmote('👏')">👏</div>
+        <div class="emote-item" onclick="playSe('battle');sendEmote('😡')">😡</div>
     </div>
-    <button id="emote-btn" onclick="toggleEmoteMenu()">💬</button>
+ <button id="emote-btn" onclick="playSe('battle'); toggleEmoteMenu()">💬</button>
 </div>
 
 <footer>
@@ -441,15 +615,132 @@ footer { padding: 20px; padding-bottom: max(50px, env(safe-area-inset-bottom)); 
   const db = getDatabase(app);
 
 const BOARD_RADIUS = 3;
+
 const bgm = new Audio('bgm.mp3');
 bgm.loop = true;
-bgm.volume = 0.1;
+
+// ■■■ SE（効果音）の定義 ■■■
+const seTitle = new Audio('se_title.mp3');   // タイトル用
+const seBattle = new Audio('se_battle.mp3'); // バトル用
+const seCancel = new Audio('se_cancel.mp3'); // キャンセル用
+// ★追加：回転（マスカード実行）用の音
+const seRotate = new Audio('se_rotate.mp3'); 
+
+const seMove = new Audio('se_move.mp3');    
+const seDamage = new Audio('se_damage.mp3'); 
+
+
+// ■■■ 音量管理用変数 ■■■
+let bgmVolume = 0.1;
+let seVolume = 0.5; // SEの初期音量
+
+// SE再生用関数（BGM蘇生機能つき）
+function playSe(name) {
+    let target = null;
+    if (name === 'title') target = seTitle;
+    if (name === 'battle') target = seBattle;
+    if (name === 'cancel') target = seCancel;
+    if (name === 'rotate') target = seRotate;
+    if (name === 'move') target = seMove;
+    if (name === 'damage') target = seDamage;
+    
+    if (target) {
+        target.currentTime = 0; 
+        target.volume = seVolume; 
+        target.play().catch(()=>{});
+
+        // ▼▼▼ ★追加：BGMの蘇生措置 ▼▼▼
+        // 「BGMが止まっている」かつ「音量設定が0より大きい」場合
+        if (bgm.paused && bgmVolume > 0) {
+            console.log("BGM stopped by SE, restarting...");
+            bgm.play().catch(()=>{});
+        }
+    }
+}
+
+
+// ■■■ シンプルで安定したオーディオ管理 ■■■
+
+// BGM音量変更用
+window.changeBgmVolume = function(val) {
+    bgmVolume = parseFloat(val);
+    bgm.volume = bgmVolume; // 単純にvolumeプロパティに入れるだけでOK
+    
+    // 再生中でなければ再生（音量が0より大きい場合）
+    if (bgm.paused && bgmVolume > 0) {
+        bgm.play().catch(()=>{});
+    }
+
+    // ミュートアイコンの表示切り替え
+    const btn = document.getElementById('mute-bgm-btn');
+    if (btn) {
+        if (bgmVolume === 0) {
+            btn.innerText = "🔇 MUTE"; btn.style.opacity = "0.5";
+        } else {
+            btn.innerText = "🔊 ON"; btn.style.opacity = "1";
+        }
+    }
+};
+
+// SE音量変更用
+window.changeSeVolume = function(val) {
+    seVolume = parseFloat(val);
+    playSe('title'); // 確認音
+
+    const btn = document.getElementById('mute-se-btn');
+    if (btn) {
+        if (seVolume === 0) {
+            btn.innerText = "🔇 MUTE"; btn.style.opacity = "0.5";
+        } else {
+            btn.innerText = "🔊 ON"; btn.style.opacity = "1";
+        }
+    }
+};
+
+// 一括ミュート機能
+window.toggleMute = function(type) {
+    if (type === 'bgm') {
+        const slider = document.getElementById('bgm-slider');
+        const current = parseFloat(slider.value);
+        if (current > 0) {
+            slider.setAttribute('data-prev', current);
+            slider.value = 0;
+            changeBgmVolume(0);
+        } else {
+            const prev = parseFloat(slider.getAttribute('data-prev')) || 0.1;
+            slider.value = prev;
+            changeBgmVolume(prev);
+        }
+    } else if (type === 'se') {
+        const slider = document.getElementById('se-slider');
+        const current = parseFloat(slider.value);
+        if (current > 0) {
+            slider.setAttribute('data-prev', current);
+            slider.value = 0;
+            changeSeVolume(0);
+        } else {
+            const prev = parseFloat(slider.getAttribute('data-prev')) || 0.5;
+            slider.value = prev;
+            changeSeVolume(prev);
+        }
+    }
+};
 
 const COLORS = {
-    p1: '#00ccff', p1Bg: '#001a33',
-    p2: '#ff3366', p2Bg: '#2a0a12',
-    hex: '#222', hexEdge: '#333',
-    damageZone: 'rgba(255, 50, 50, 0.2)', damageStroke: '#ff3333',
+    // ユニット本体の色（濃いめ・半透明）
+    p1: 'rgba(65, 105, 225, 0.8)', 
+    p1Bg: '#4169E1', 
+    // ★追加：三角形の中身の色（かなり薄くする 0.2 くらい）
+    p1Triangle: 'rgba(0, 100, 220, 0.2)',
+
+    // ユニット本体の色
+    p2: 'rgba(220, 20, 60, 0.8)', 
+    p2Bg: '#DC143C',
+    // ★追加：三角形の中身の色
+    p2Triangle: 'rgba(220, 20, 60, 0.2)',
+    
+    hex: 'rgba(255, 215, 0, 0.1)',  hexEdge: '#333',
+    damageZone: 'rgba(0, 0, 0, 0.3)', damageStroke: '#ff3333',
     previewLine: 'rgba(255, 255, 0, 0.8)', guideMarker: 'rgba(255, 255, 255, 0.3)'
 };
 
@@ -492,8 +783,9 @@ let HEX_SIZE = 30;
 // 1つ目の要注意箇所: startGame
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 function startGame(mode) {
+
     state.gameMode = mode;
-    
+ 
     if (bgm.paused) {
         bgm.play().catch(e => console.log("BGM再生エラー:", e));
     }
@@ -666,13 +958,31 @@ function draw() {
     
     state.hexes.forEach(h => {
         const {x, y} = hexToPixel(h.q, h.r);
-        let color = COLORS.hex;
-        let stroke = COLORS.hexEdge;
+        
+        let color = COLORS.hex;      
+        let stroke = COLORS.hexEdge; 
         let lineWidth = 1;
-        if (h.isEdge) { stroke = COLORS.damageStroke; lineWidth = 2; }
-        if (state.hiddenRotation && state.phase === 'ANIMATION' && state.hiddenRotation.indices.includes(getHexIndex(h.q, h.r))) {
-             color = '#444';
+
+        // まず外周（ダメージゾーン）の色にする
+        if (h.isEdge) { 
+            stroke = COLORS.damageStroke; 
+            lineWidth = 2; 
+            color = COLORS.damageZone; 
         }
+
+        // ▼▼▼ ★追加ここから★ ▼▼▼
+        // もし「角（コーナー）」なら、さらに色を上書きする！
+        if (h.isCorner) {
+            stroke = '#8B0000'; // 枠線の色（例：ゴールド）
+            color = 'rgba(0, 0, 0, 0.9)'; // 中身の色（例：半透明の黄色）
+            lineWidth = 3; // 枠線を少し太くする
+        }
+
+        // 回転プレビュー時の色
+        if (state.hiddenRotation && state.phase === 'ANIMATION' && state.hiddenRotation.indices.includes(getHexIndex(h.q, h.r))) {
+             color = 'rgba(250, 225, 0, 0.5)';
+        }
+        
         drawHex(x, y, HEX_SIZE * 0.95, color, stroke, lineWidth);
         
         if (state.phase === 'DEFENDER_MOVE' && state.selectedUnit && !state.isCpuThinking) {
@@ -683,7 +993,10 @@ function draw() {
         }
     });
 
+    // --- ここから下は変更なし ---
+
     if (state.phase === 'SELECT_ROTATION') {
+
         if (state.tempRotationStart) {
             const startPos = hexToPixel(state.tempRotationStart.q, state.tempRotationStart.r);
             drawHex(startPos.x, startPos.y, HEX_SIZE * 0.9, '#ffd700', '#fff', 3);
@@ -731,14 +1044,19 @@ function draw() {
             if (isEq) {
                 ctx.strokeStyle = color; ctx.lineWidth = 4;
                 ctx.shadowColor = color; ctx.shadowBlur = 20; ctx.stroke();
-                ctx.fillStyle = color + '22'; ctx.fill();
+                
+                ctx.fillStyle = (ownerId === 1) ? COLORS.p1Triangle : COLORS.p2Triangle;
+                
+                ctx.fill();
             } else {
+
                 ctx.strokeStyle = '#444'; ctx.lineWidth = 2; ctx.shadowBlur = 0; ctx.stroke();
             }
             ctx.shadowBlur = 0;
         }
     });
 
+    // ■■■ 修正：HPバーを常に緑色にする版 ■■■
     state.units.forEach(u => {
         const {x, y} = hexToPixel(u.animQ, u.animR);
         let color = u.owner === 1 ? COLORS.p1 : COLORS.p2;
@@ -748,71 +1066,101 @@ function draw() {
              u.hitFlash--;
         }
 
+        // 移動先の点線
         const move = state.defenderMoves.find(m => m.unitId === u.id);
         if (move) {
             const destHex = state.hexes[move.toIndex];
             const destPos = hexToPixel(destHex.q, destHex.r);
-            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(destPos.x, destPos.y);
-            ctx.strokeStyle = '#fff'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.save();
+            ctx.globalAlpha = 0.4; 
+            drawHex(destPos.x, destPos.y, HEX_SIZE * 0.7, null, color, 2); 
+            ctx.restore();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            const midX = (x + destPos.x) / 2;
+            const midY = (y + destPos.y) / 2 - 30; 
+            ctx.quadraticCurveTo(midX, midY, destPos.x, destPos.y);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]); 
+            ctx.stroke();
+            ctx.setLineDash([]);
         }
 
-        let size = HEX_SIZE * 0.7; let stroke = '#fff'; let lw = 2;
+        // 選択中の強調
         if (state.selectedUnit && state.selectedUnit.id === u.id) {
-            size *= 1.1; stroke = '#ffd700'; lw = 4;
             ctx.beginPath(); ctx.arc(x, y, HEX_SIZE, 0, Math.PI*2);
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 4; ctx.stroke();
         }
-        drawHex(x, y, size, color, stroke, lw);
-        const hpPct = u.hp / 1000;
-        ctx.fillStyle = '#000'; ctx.fillRect(x - 15, y - 5, 30, 4);
-        ctx.fillStyle = hpPct > 0.5 ? '#0f0' : '#f00'; ctx.fillRect(x - 15, y - 5, 30 * Math.max(0, hpPct), 4);
-    });
-    
-    // ... (既存の描画処理) ...
 
-    // ★★★ 追加：移動フェーズのガイド表示（駒がポワワーンと光る） ★★★
+        // 白枠（細め）
+        drawHex(x, y, HEX_SIZE * 0.7, color, 'rgba(255,255,255,0.9)', 1.5);
+
+
+        // ■■■ HPゲージ：常に緑色 ■■■
+        const hpPct = Math.max(0, u.hp / 1000);
+        
+        // ★変更：条件分岐を消して、常に緑色に固定しました
+        const hpColor = 'rgba(0, 255, 0, 0.6)';
+        
+        const barWidth = 3; 
+        const barRadius = HEX_SIZE * 0.85; 
+
+        // 背景
+        drawHex(x, y, barRadius, null, 'rgba(0,0,0,0.2)', barWidth);
+
+        const perimeter = barRadius * 6; 
+        
+        ctx.beginPath();
+        // 反時計回り（右から減る）
+        for (let i = 0; i < 7; i++) { 
+            const angle = -Math.PI / 2 - (2 * Math.PI / 6 * i);
+            const px = x + barRadius * Math.cos(angle);
+            const py = y + barRadius * Math.sin(angle);
+            if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        
+        ctx.setLineDash([perimeter * hpPct, perimeter]); 
+        
+        ctx.strokeStyle = hpColor;
+        ctx.lineWidth = barWidth;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        ctx.setLineDash([]); 
+    });
+   
     if (state.showUnitGuidance && state.phase === 'DEFENDER_MOVE') {
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1; 
-        
-        // ★追加: 経過時間を計算して、じわ～っと消す
         const elapsed = Date.now() - (state.guidanceStartTime || 0);
-        const duration = 3000; // 3秒かけて消える
+        const duration = 3000; 
         
         if (elapsed > duration) {
-            state.showUnitGuidance = false; // 時間切れでオフ
+            state.showUnitGuidance = false; 
             return;
         }
-
-        // フェードアウト率（1.0 → 0.0）
         const fade = Math.pow(1.0 - (elapsed / duration), 2); 
-
-        // 輪っかのアニメーション
         const pulse = (Date.now() % 1000) / 1000; 
         const radius = HEX_SIZE * (1.0 + pulse * 0.8);
-        const alpha = (1.0 - pulse) * fade; // ★変更: フェード率を掛け算
+        const alpha = (1.0 - pulse) * fade; 
 
         state.units.forEach(u => {
             if (u.owner === defenderId) {
                 const {x, y} = hexToPixel(u.animQ, u.animR);
-                
-                // 光る輪っか
                 ctx.beginPath();
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`; // ★alpha適用
+                ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`; 
                 ctx.lineWidth = 4;
                 ctx.stroke();
                 
-                // 本体も少し光らせる（ここもfadeをかけて自然に消す）
                 ctx.beginPath();
                 ctx.arc(x, y, HEX_SIZE, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 215, 0, ${0.8 * fade})`; // ★fade適用
+                ctx.strokeStyle = `rgba(255, 215, 0, ${0.8 * fade})`; 
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
         });
     }
-
-    drawEmotes();
 }
 
 function addDamageEffect(unit, damage) {
@@ -831,11 +1179,14 @@ function drawHex(x, y, size, fill, stroke, lw) {
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
 }
-function drawArrowHead(x, y) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill(); }
 
 function updateTurnVisuals() {
     const p = state.turnPlayer;
-    document.body.style.backgroundColor = p.bg;
+    
+    const colorLayer = document.getElementById('bg-color-layer');
+    if (colorLayer) {
+        colorLayer.style.backgroundColor = p.bg;
+    }
     
     const indicator = document.getElementById('turn-indicator');
     const badge = document.getElementById('phase-badge');
@@ -913,10 +1264,45 @@ function updateTurnVisuals() {
         
         indicator.innerText = defender.name;
         indicator.style.color = defender.color;
-        document.body.style.backgroundColor = defender.bg;
+        
+        const colorLayer = document.getElementById('bg-color-layer');
+        if (colorLayer) colorLayer.style.backgroundColor = defender.bg;
         
     } else {
+
         badge.innerText = "";
+
+        cardPanel.style.display = 'none';
+        mainBtn.style.display = 'none';
+    }
+
+    let activeId = state.turnPlayer.id;
+
+    if (state.phase === 'DEFENDER_MOVE') {
+        activeId = (state.turnPlayer.id === 1) ? 2 : 1;
+    }
+
+    const p1Badge = document.querySelector('.player-badge.p1');
+    const p2Badge = document.querySelector('.player-badge.p2');
+
+    if (activeId === 1) {
+        // 1(青)のターン
+        p1Badge.style.opacity = '1';
+        p1Badge.style.transform = 'scale(1.05)'; // 少し大きく強調
+        p1Badge.style.zIndex = '110';
+        
+        p2Badge.style.opacity = '0.4'; // 2(赤)は薄く
+        p2Badge.style.transform = 'scale(1)';
+        p2Badge.style.zIndex = '100';
+    } else {
+        // 2(赤)のターン
+        p1Badge.style.opacity = '0.4'; // 1(青)は薄く
+        p1Badge.style.transform = 'scale(1)';
+        p1Badge.style.zIndex = '100';
+        
+        p2Badge.style.opacity = '1';
+        p2Badge.style.transform = 'scale(1.05)';
+        p2Badge.style.zIndex = '110';
     }
 }
 
@@ -997,6 +1383,11 @@ async function triggerCpuAction() {
 function uiSelectCard(len, fromCpu = false) {
     if (state.isCpuThinking && !fromCpu) return;
     
+    // ★ここを変更：CPU以外の操作なら音を鳴らす
+    if (!fromCpu) {
+        playSe('battle'); 
+    }
+
     if (state.gameMode === 'ONLINE' && !fromCpu) {
         sendAction('SELECT_CARD', { value: len });
     }
@@ -1029,10 +1420,14 @@ function uiSelectCard(len, fromCpu = false) {
 }
 
 async function uiConfirm() {
+
+    playSe('battle');
+
     if (state.isCpuThinking) return;
      clearInterval(state.timerInterval);
 
     if (state.gameMode === 'ONLINE') {
+
         const isMyPhase = 
             (state.phase === 'DEFENDER_MOVE' && (state.turnPlayer.id === 1 ? 2 : 1) === myPlayerId) ||
             (state.phase === 'SELECT_ROTATION' && state.turnPlayer.id === myPlayerId);
@@ -1117,7 +1512,6 @@ async function triggerPhaseGuidance() {
 function handleInput(x, y) {
     if (state.phase === 'TITLE' || state.phase === 'ANIMATION' || state.phase === 'TURN_CUTIN' || state.winner || state.isCpuThinking) return;
 
-    // オンラインの手番チェック
     if (state.gameMode === 'ONLINE') {
         if (state.phase === 'DEFENDER_MOVE') {
             const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
@@ -1130,8 +1524,11 @@ function handleInput(x, y) {
     const coords = pixelToHex(x, y);
     const hexIndex = getHexIndex(coords.q, coords.r);
     
+    // ■ 何もないところをクリック（キャンセル操作）
     if (hexIndex === -1) {
         if (state.phase === 'SELECT_ROTATION' && state.tempRotationStart) {
+            playSe('cancel'); // ★追加: キャンセル音
+            
             state.previewRotation = null;
             state.tempRotationStart = null;
             state.validDirections = [];
@@ -1143,18 +1540,25 @@ function handleInput(x, y) {
 
     const clickedHex = state.hexes[hexIndex];
 
+    // ■ 回転フェーズの操作
     if (state.phase === 'SELECT_ROTATION') {
-        // ... (回転選択のロジックは変更なし) ...
         if (!state.tempRotationStart) {
+            // 軸を選択した時
+            playSe('battle'); // ★追加
+            
             state.tempRotationStart = clickedHex;
             calcValidDirections(clickedHex);
             if (state.validDirections.length === 0) {
                 showToast("回転不可"); 
+                playSe('cancel'); // ★追加: 無効な時はキャンセル音
                 state.tempRotationStart = null;
             }
         
         } else {
+            // 軸を再クリック（キャンセル）
             if (state.tempRotationStart === clickedHex) {
+                playSe('cancel'); // ★追加
+                
                 state.previewRotation = null;
                 state.tempRotationStart = null;
                 state.validDirections = [];
@@ -1167,11 +1571,15 @@ function handleInput(x, y) {
             const valid = state.validDirections.find(v => v.indices.includes(clickedIndex));
 
             if (valid) {
+                playSe('battle'); // ★追加
+                
                 state.previewRotation = { indices: valid.indices };
                 showToast("OKボタンで確定");
                 updateTurnVisuals(); 
             } 
             else {
+                playSe('cancel'); // ★追加
+                
                 state.previewRotation = null;
                 state.tempRotationStart = null;
                 state.validDirections = [];
@@ -1181,20 +1589,19 @@ function handleInput(x, y) {
         }
     }
 
-    // ★★★ ここが重要な修正箇所 ★★★
+    // ■ 移動フェーズの操作
     else if (state.phase === 'DEFENDER_MOVE') {
         const defenderId = state.turnPlayer.id === 1 ? 2 : 1;
-        
-        // 「防御担当プレイヤー」が「自分」でないなら操作させない
-        // (PvEで自分が赤(2)のとき、defenderIdが2になっても、myPlayerIdも2なので操作可能になる！)
         if (defenderId !== myPlayerId) return;
 
         const unit = getUnitAt(clickedHex.q, clickedHex.r);
         
         if (unit && unit.owner === defenderId) {
             if (state.selectedUnit === unit) {
+                playSe('cancel'); // ★追加
                 state.selectedUnit = null; 
             } else {
+                playSe('battle'); // ★追加
                 state.selectedUnit = unit; 
             }
             if (state.defenderMoves.find(m => m.unitId === unit.id)) {
@@ -1213,6 +1620,7 @@ function handleInput(x, y) {
                 return;
             }
 
+            playSe('battle'); // ★追加
             state.defenderMoves.push({ unitId: state.selectedUnit.id, toIndex: hexIndex });
             state.selectedUnit = null; 
             updateTurnVisuals();
@@ -1225,6 +1633,11 @@ async function startTurnResolution() {
     updateTurnVisuals();
 
     try {
+        // ★追加：移動するコマがあれば移動音を鳴らす
+        if (state.defenderMoves.length > 0) {
+            playSe('move');
+        }
+
         for (let m of state.defenderMoves) {
             const u = state.units.find(u => u.id === m.unitId);
             if (!u) continue; 
@@ -1238,6 +1651,9 @@ async function startTurnResolution() {
 
         if (state.hiddenRotation && state.hiddenRotation.indices) {
             const indices = state.hiddenRotation.indices;
+            
+            playSe('rotate');
+            
             showToast("ROTATION!");
             await wait(500);
             
@@ -1260,6 +1676,9 @@ async function startTurnResolution() {
             await wait(1000);
         }
 
+        // ★追加：ダメージがあったかどうかのフラグ
+        let hasDamage = false;
+
         state.units.forEach(u => {
             const idx = getHexIndex(u.q, u.r);
             if (idx === -1) return;
@@ -1271,13 +1690,15 @@ async function startTurnResolution() {
             if (damage > 0) {
                 u.hp -= damage;
                 addDamageEffect(u, damage);
+                hasDamage = true; // ★追加：ダメージあり！
             }
         });
 
         [1, 2].forEach(attackerId => {
             const myUnits = state.units.filter(u => u.owner === attackerId);
             if (myUnits.length === 3) {
-                const pts = myUnits.map(u => hexToPixel(u.q, u.r));
+                // 論理座標を使って計算
+                const pts = myUnits.map(u => hexToLogicalPixel(u.q, u.r));
                 if (isEquilateral(pts[0], pts[1], pts[2])) {
                     const defenderId = attackerId === 1 ? 2 : 1;
                     state.units.filter(u => u.owner === defenderId).forEach(target => {
@@ -1286,11 +1707,17 @@ async function startTurnResolution() {
                             const dmg = Math.floor(350 * ratio);
                             target.hp -= dmg;
                             addDamageEffect(target, dmg);
+                            hasDamage = true; // ★追加：ダメージあり！
                         }
                     });
                 }
             }
         });
+        
+        // ★追加：誰か1人でもダメージを受けていればガラス音！
+        if (hasDamage) {
+            playSe('damage');
+        }
         
         await wait(1500);
 
@@ -1398,6 +1825,17 @@ function hexToPixel(q, r) {
     const y = canvas.height/2 + HEX_SIZE * (3/2 * r);
     return { x, y };
 }
+
+function hexToLogicalPixel(q, r) {
+    const LOGICAL_WIDTH = 1000;
+    const LOGICAL_HEIGHT = 1000;
+    const LOGICAL_HEX_SIZE = 50;
+    
+    const x = LOGICAL_WIDTH/2 + LOGICAL_HEX_SIZE * (Math.sqrt(3) * (q + r/2));
+    const y = LOGICAL_HEIGHT/2 + LOGICAL_HEX_SIZE * (3/2 * r);
+    return { x, y, size: LOGICAL_HEX_SIZE }; // サイズも返す
+}
+
 function pixelToHex(x, y) {
     const pt = { x: x - canvas.width/2, y: y - canvas.height/2 };
     const q = (Math.sqrt(3)/3 * pt.x - 1/3 * pt.y) / HEX_SIZE;
@@ -1423,10 +1861,13 @@ function isEquilateral(p1, p2, p3) {
     return Math.abs(d1 - avg) < avg * 0.1 && Math.abs(d2 - avg) < avg * 0.1 && Math.abs(d3 - avg) < avg * 0.1;
 }
 function getTriangleOverlapRatio(unit, t1, t2, t3) {
-    const unitPos = hexToPixel(unit.q, unit.r);
-    const visualRadius = HEX_SIZE * 0.7; 
+    // ★変更：論理座標を使って、ユニットの位置とサイズを取得する
+    const logical = hexToLogicalPixel(unit.q, unit.r);
+    const unitPos = { x: logical.x, y: logical.y };
+    const visualRadius = logical.size * 0.7; 
 
     let hitCount = 0;
+
     let totalPoints = 0;
 
     if (isPointInTriangle(unitPos, t1, t2, t3)) hitCount++;
@@ -1469,8 +1910,6 @@ function resizeCanvas() {
     canvas.width = c.clientWidth; canvas.height = c.clientHeight;
     HEX_SIZE = Math.min((canvas.width*0.95)/(7*Math.sqrt(3)), (canvas.height*0.95)/(7*1.5));
 }
-function showToast(msg) {
-}
 
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 window.addEventListener('resize', resizeCanvas);
@@ -1498,10 +1937,6 @@ canvas.addEventListener('touchstart', onInputStart, {passive: false});
 canvas.addEventListener('mousedown', onInputStart);
 
 resizeCanvas();
-
-// ■■■ 修正箇所：AI関連の関数群（一番下に追加・置き換え） ■■■
-
-// ■■■ 修正箇所：AI関連の関数群（一番下をこれに総入れ替えしてください） ■■■
 
 // 1. 最適なカードと回転を決める脳みそ
 function aiFindBestCardAction() {
@@ -1642,7 +2077,8 @@ function aiEvaluateBoard(simUnits) {
     [cpuId, playerId].forEach(owner => {
         const myUnits = simUnits.filter(u => u.owner === owner);
         if (myUnits.length === 3) {
-            const pts = myUnits.map(u => hexToPixel(u.q, u.r));
+            // ★変更：AIの計算も論理座標で行う
+            const pts = myUnits.map(u => hexToLogicalPixel(u.q, u.r));
             if (isEquilateral(pts[0], pts[1], pts[2])) {
                 const targetId = owner === cpuId ? playerId : cpuId;
                 const targets = simUnits.filter(u => u.owner === targetId);
@@ -1737,9 +2173,6 @@ function quitGame() {
 
 function toggleEmoteMenu() {
     document.getElementById('emote-menu').classList.toggle('show');
-}
-
-function drawEmotes() {
 }
 
 function sendEmote(emoji, forceOwnerId = null) {
@@ -1849,6 +2282,22 @@ window.startOnlineGame = function() {
         alert("通信エラーが発生しました");
     });
 };
+
+// ▼▼▼ これを復活させてください ▼▼▼
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    
+    el.innerText = msg;
+    el.style.opacity = 1;
+    el.style.top = "20%"; // ちょっと跳ねる演出用初期位置
+    
+    // アニメーション用リセット（2秒後に消える）
+    setTimeout(() => {
+        el.style.opacity = 0;
+    }, 2000);
+}
+
 
 function createRoom(name) {
     myPlayerId = Math.random() < 0.5 ? 1 : 2;
@@ -2047,52 +2496,72 @@ function updateTimerDisplay() {
     }
 }
 
-// 【修正】handleTimeout関数を書き換え
+// タイムアウト時の処理（修正版）
 function handleTimeout() {
     // 1. CPU思考中なら何もしない
     if (state.isCpuThinking) return;
 
     // 2. オンラインの場合の厳密なチェック
     if (state.gameMode === 'ONLINE') {
-        // 現在のフェーズで「操作権」を持っているのは誰か？
         let currentActorId;
         
         if (state.phase === 'SELECT_CARD') {
-            currentActorId = state.turnPlayer.id; // 攻撃側
+            currentActorId = state.turnPlayer.id; 
         } else if (state.phase === 'SELECT_ROTATION') {
-            currentActorId = state.turnPlayer.id; // 攻撃側
+            currentActorId = state.turnPlayer.id; 
         } else if (state.phase === 'DEFENDER_MOVE') {
-            // 防御側（ターンプレイヤーじゃない方）
             currentActorId = (state.turnPlayer.id === 1) ? 2 : 1;
         } else {
-            // それ以外のフェーズ（演出中など）はタイムアウト判定しない
             return;
         }
 
-        // 自分に操作権がないなら、タイマーが0になっても何もしない（相手の通信を待つ）
         if (currentActorId !== myPlayerId) {
             console.log("Time up on client, but waiting for opponent...");
             return;
         }
     }
     
-    // 以下は変更なし（タイムアップ時の自動操作）
     showToast("TIME UP!");
     
+    // ▼▼▼ ここを修正しました ▼▼▼
     if (state.phase === 'SELECT_CARD') {
-        uiSelectCard(2);
+        // (1) まず一番小さいカードを強制選択
+        uiSelectCard(2); 
+
+        // (2) さらに「置ける場所」を自動で探して決定してしまう
+        // すべてのマスを調べて、最初に置ける場所（方向0）で確定させる
+        for (let h of state.hexes) {
+            const indices = getLineIndices(h, 2, 0); // 方向0でチェック
+            if (indices) {
+                // 回転情報を確定
+                state.hiddenRotation = { indices: indices };
+                if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: indices });
+                
+                // 次のフェーズ（移動）へ強制移行
+                state.phase = 'DEFENDER_MOVE';
+                updateTurnVisuals();
+                resetTimer(); // タイマーをリセットして移動時間を確保
+                break; // ループを抜ける
+            }
+        }
+
     } else if (state.phase === 'SELECT_ROTATION') {
+         // 回転場所を選んでいる途中でタイムアップした場合
          if (state.validDirections.length > 0) {
             const valid = state.validDirections[0];
             state.hiddenRotation = { indices: valid.indices };
             if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: valid.indices });
             state.phase = 'DEFENDER_MOVE';
-            updateTurnVisuals(); 
+            updateTurnVisuals();
+            resetTimer(); // 移動時間をリセット
         } else {
+            // 万が一置ける場所がない場合（バグ回避用）
             state.phase = 'SELECT_CARD';
             resetTimer(); 
         }
+
     } else if (state.phase === 'DEFENDER_MOVE') {
+        // 移動フェーズで時間切れなら、そのまま確定（移動なし）
         uiConfirm();
     }
 }
@@ -2111,13 +2580,11 @@ function sendAction(type, data) {
 window.openSettings = function() {
     document.getElementById('settings-modal').classList.add('active');
 };
+
 window.closeSettings = function() {
     document.getElementById('settings-modal').classList.remove('active');
 };
-window.changeVolume = function(val) {
-    bgm.volume = parseFloat(val);
-    if(bgm.paused) bgm.play().catch(()=>{});
-};
+
 window.openSecretModal = function() {
     document.getElementById('secret-modal').classList.add('active');
     setTimeout(() => {
@@ -2158,6 +2625,7 @@ function startOnlineListener() {
     });
 }
 
+window.playSe = playSe; 
 window.startGame = startGame;
 window.uiSelectCard = uiSelectCard;
 window.uiConfirm = uiConfirm;
