@@ -1630,10 +1630,14 @@ function handleInput(x, y) {
 
 async function startTurnResolution() {
     state.phase = 'ANIMATION';
+    
+
+    state.selectedUnit = null; 
+
     updateTurnVisuals();
 
     try {
-        // ★追加：移動するコマがあれば移動音を鳴らす
+      // ★追加：移動するコマがあれば移動音を鳴らす
         if (state.defenderMoves.length > 0) {
             playSe('move');
         }
