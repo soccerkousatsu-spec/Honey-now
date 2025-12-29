@@ -2287,21 +2287,10 @@ window.startOnlineGame = function() {
     });
 };
 
-// ▼▼▼ これを復活させてください ▼▼▼
 function showToast(msg) {
-    const el = document.getElementById('toast');
-    if (!el) return;
-    
-    el.innerText = msg;
-    el.style.opacity = 1;
-    el.style.top = "20%"; // ちょっと跳ねる演出用初期位置
-    
-    // アニメーション用リセット（2秒後に消える）
-    setTimeout(() => {
-        el.style.opacity = 0;
-    }, 2000);
+    // 通知を出さないようにする
+    return;
 }
-
 
 function createRoom(name) {
     myPlayerId = Math.random() < 0.5 ? 1 : 2;
