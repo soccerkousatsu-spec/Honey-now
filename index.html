@@ -954,8 +954,9 @@ function executeAction(data) {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
+ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight); 
+   
     state.hexes.forEach(h => {
         const {x, y} = hexToPixel(h.q, h.r);
         
@@ -1825,8 +1826,9 @@ function getLineIndices(startHex, len, dirIdx) {
     return indices;
 }
 function hexToPixel(q, r) {
-    const x = canvas.width/2 + HEX_SIZE * (Math.sqrt(3) * (q + r/2));
-    const y = canvas.height/2 + HEX_SIZE * (3/2 * r);
+    // ★ここを変更：canvas.width ではなく canvas.clientWidth を使う
+    const x = canvas.clientWidth/2 + HEX_SIZE * (Math.sqrt(3) * (q + r/2));
+    const y = canvas.clientHeight/2 + HEX_SIZE * (3/2 * r);
     return { x, y };
 }
 
@@ -1841,11 +1843,13 @@ function hexToLogicalPixel(q, r) {
 }
 
 function pixelToHex(x, y) {
-    const pt = { x: x - canvas.width/2, y: y - canvas.height/2 };
+    // ★ここを変更：canvas.width ではなく canvas.clientWidth を使う
+    const pt = { x: x - canvas.clientWidth/2, y: y - canvas.clientHeight/2 };
     const q = (Math.sqrt(3)/3 * pt.x - 1/3 * pt.y) / HEX_SIZE;
     const r = (2/3 * pt.y) / HEX_SIZE;
     return cubeRound(q, r, -q-r);
 }
+
 function cubeRound(x, y, z) {
     let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
     const x_diff = Math.abs(rx - x), y_diff = Math.abs(ry - y), z_diff = Math.abs(rz - z);
@@ -1911,8 +1915,22 @@ function isPointInTriangle(p, a, b, c) {
 
 function resizeCanvas() {
     const c = document.getElementById('game-area');
-    canvas.width = c.clientWidth; canvas.height = c.clientHeight;
-    HEX_SIZE = Math.min((canvas.width*0.95)/(7*Math.sqrt(3)), (canvas.height*0.95)/(7*1.5));
+    // スマホの解像度比率を取得（通常は2〜3）
+    const dpr = window.devicePixelRatio || 1; 
+
+    // ★重要：キャンバスの実体を「解像度分」大きくする
+    canvas.width = c.clientWidth * dpr;
+    canvas.height = c.clientHeight * dpr;
+
+    // ★重要：でも見た目のサイズはそのままにする
+    canvas.style.width = c.clientWidth + 'px';
+    canvas.style.height = c.clientHeight + 'px';
+
+    // ★重要：描画コマンド全体を「解像度分」拡大する
+    ctx.scale(dpr, dpr);
+
+    // HEXのサイズ計算には「見た目のサイズ(clientWidth)」を使う
+    HEX_SIZE = Math.min((c.clientWidth*0.95)/(7*Math.sqrt(3)), (c.clientHeight*0.95)/(7*1.5));
 }
 
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
