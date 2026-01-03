@@ -634,30 +634,31 @@ const seDamage = new Audio('se_damage.mp3');
 let bgmVolume = 0.1;
 let seVolume = 0.5; // SEの初期音量
 
-// SE再生用関数（BGM蘇生機能つき）
+// SE再生用関数（高速化修正版）
 function playSe(name) {
-    let target = null;
-    if (name === 'title') target = seTitle;
-    if (name === 'battle') target = seBattle;
-    if (name === 'cancel') target = seCancel;
-    if (name === 'rotate') target = seRotate;
-    if (name === 'move') target = seMove;
-    if (name === 'damage') target = seDamage;
+    let original = null;
+    if (name === 'title') original = seTitle;
+    if (name === 'battle') original = seBattle;
+    if (name === 'cancel') original = seCancel;
+    if (name === 'rotate') original = seRotate;
+    if (name === 'move') original = seMove;
+    if (name === 'damage') original = seDamage;
     
-    if (target) {
-        target.currentTime = 0; 
-        target.volume = seVolume; 
-        target.play().catch(()=>{});
+    if (original) {
+        // ★修正ポイント：元の音声を「複製(clone)」して鳴らす
+        // これにより「巻き戻し時間」がなくなり、連打も可能になります
+        const clone = original.cloneNode();
+        clone.volume = seVolume; 
+        
+        // 再生（終わったらメモリから消えるので管理不要）
+        clone.play().catch(()=>{});
 
-        // ▼▼▼ ★追加：BGMの蘇生措置 ▼▼▼
-        // 「BGMが止まっている」かつ「音量設定が0より大きい」場合
+        // BGM蘇生措置
         if (bgm.paused && bgmVolume > 0) {
-            console.log("BGM stopped by SE, restarting...");
             bgm.play().catch(()=>{});
         }
     }
 }
-
 
 // ■■■ シンプルで安定したオーディオ管理 ■■■
 
@@ -979,8 +980,10 @@ ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
             lineWidth = 3; // 枠線を少し太くする
         }
 
+// ■■■ 修正後 ■■■
         // 回転プレビュー時の色
-        if (state.hiddenRotation && state.phase === 'ANIMATION' && state.hiddenRotation.indices.includes(getHexIndex(h.q, h.r))) {
+        // ★修正: indicesが存在しない場合にエラー落ち（画面消失）するのを防ぐチェックを追加
+        if (state.hiddenRotation && state.hiddenRotation.indices && state.phase === 'ANIMATION' && state.hiddenRotation.indices.includes(getHexIndex(h.q, h.r))) {
              color = 'rgba(250, 225, 0, 0.5)';
         }
         
@@ -1334,6 +1337,7 @@ async function triggerCpuAction() {
         showToast(`CPU SELECT: ${choice}連`);
         await wait(1500);
         
+// ■■■ 修正後 ■■■
         if (bestAction.indices) {
             state.hiddenRotation = { indices: bestAction.indices };
             state.phase = 'DEFENDER_MOVE';
@@ -1342,10 +1346,10 @@ async function triggerCpuAction() {
             showToast("CPUが回転をセットしました");
             updateTurnVisuals();    
             triggerPhaseGuidance(); 
-
-            // ★★★ 修正点: ここにあった setTimeout を削除しました！ ★★★
-            // これでCPUは満足して停止し、プレイヤーの入力待ちになります。
             
+            // ★追加：防御側のプレイヤーにバトンタッチする時、タイマーを30秒に戻す
+            resetTimer(); 
+
         } else {
             // 万が一の手
             const cards = [2,3,4];
@@ -2507,7 +2511,7 @@ function updateTimerDisplay() {
     }
 }
 
-// タイムアウト時の処理（修正版）
+// タイムアウト時の処理（修正版 v4）
 function handleTimeout() {
     // 1. CPU思考中なら何もしない
     if (state.isCpuThinking) return;
@@ -2534,46 +2538,96 @@ function handleTimeout() {
     
     showToast("TIME UP!");
     
-    // ▼▼▼ ここを修正しました ▼▼▼
+    // ■■■ パターンA: カード選択中に時間切れ ■■■
     if (state.phase === 'SELECT_CARD') {
-        // (1) まず一番小さいカードを強制選択
-        uiSelectCard(2); 
+        // カードを選んでないなら、一番小さいカード(2)を強制選択して進める
+        executeForceRotation(2);
 
-        // (2) さらに「置ける場所」を自動で探して決定してしまう
-        // すべてのマスを調べて、最初に置ける場所（方向0）で確定させる
-        for (let h of state.hexes) {
-            const indices = getLineIndices(h, 2, 0); // 方向0でチェック
-            if (indices) {
-                // 回転情報を確定
-                state.hiddenRotation = { indices: indices };
-                if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: indices });
-                
-                // 次のフェーズ（移動）へ強制移行
-                state.phase = 'DEFENDER_MOVE';
-                updateTurnVisuals();
-                resetTimer(); // タイマーをリセットして移動時間を確保
-                break; // ループを抜ける
-            }
-        }
-
+    // ■■■ パターンB: 回転軸を選んでいる最中に時間切れ ■■■
     } else if (state.phase === 'SELECT_ROTATION') {
-         // 回転場所を選んでいる途中でタイムアップした場合
+         // すでに回転候補が表示されているなら、その1つ目を採用
          if (state.validDirections.length > 0) {
             const valid = state.validDirections[0];
-            state.hiddenRotation = { indices: valid.indices };
-            if (state.gameMode === 'ONLINE') sendAction('ROTATE', { indices: valid.indices });
-            state.phase = 'DEFENDER_MOVE';
-            updateTurnVisuals();
-            resetTimer(); // 移動時間をリセット
+            applyForcedRotation(valid.indices);
+
         } else {
-            // 万が一置ける場所がない場合（バグ回避用）
-            state.phase = 'SELECT_CARD';
-            resetTimer(); 
+            // ★修正ポイント: カードは選んだが場所を選んでない場合
+            // "最初に戻す"のではなく、"強制的に置いて進める"
+            
+            // 今選んでいるカード(state.selectedCard)を使って場所を探す
+            // もし場所がなければ、カード2(最小)で再トライする安全策付き
+            executeForceRotation(state.selectedCard || 2);
         }
 
+    // ■■■ パターンC: 防御（移動）フェーズで時間切れ ■■■
     } else if (state.phase === 'DEFENDER_MOVE') {
-        // 移動フェーズで時間切れなら、そのまま確定（移動なし）
         uiConfirm();
+    }
+}
+
+// ★追加: タイムアウト時の強制実行を共通化した関数
+function executeForceRotation(cardLen) {
+    // 1. 指定されたカードで場所を探す
+    let indices = findFirstValidSpot(cardLen);
+    
+    // 2. 見つからなければ、一番小さいカード(2)で再検索（詰み防止）
+    if (!indices && cardLen !== 2) {
+        cardLen = 2;
+        indices = findFirstValidSpot(2);
+    }
+
+    // 3. UI状もそのカードを選択したことにする
+    uiSelectCard(cardLen, true);
+
+    // 4. それでも場所がなければ（完全な詰み）、パスさせるしかないが
+    // 基本的にはあり得ないので、ここではリセットのみ
+    if (!indices) {
+        resetTimer();
+        return;
+    }
+
+    // 5. 回転を確定して次へ
+    applyForcedRotation(indices);
+}
+
+// ★追加: 最初の置ける場所を探すヘルパー関数
+function findFirstValidSpot(len) {
+    for (let h of state.hexes) {
+        // 方向0(右)で置けるかチェック
+        const indices = getLineIndices(h, len, 0); 
+        if (indices) return indices;
+        
+        // 方向3(左)もチェック（念のため）
+        const indices2 = getLineIndices(h, len, 3);
+        if (indices2) return indices2;
+    }
+    return null;
+}
+
+// ★追加: 回転を適用してフェーズを進める共通関数
+function applyForcedRotation(indices) {
+    state.hiddenRotation = { indices: indices };
+    
+    if (state.gameMode === 'ONLINE') {
+        sendAction('ROTATE', { indices: indices });
+    }
+    
+    state.phase = 'DEFENDER_MOVE';
+    
+    // UI更新 & タイマーリセット
+    updateTurnVisuals();
+    resetTimer(); 
+
+    // CPU起動 (0.1秒待機)
+    if (state.gameMode === 'PvE') {
+        setTimeout(() => {
+            triggerCpuAction();
+        }, 100);
+    }
+    
+    // ガイド表示
+    if (state.turnPlayer.id !== myPlayerId) {
+        triggerPhaseGuidance();
     }
 }
 
